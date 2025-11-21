@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ecosistema Trivia XR-IA</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- MediaPipe Hands, Face Mesh & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <!-- Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* UI Overlay futurista */
+        .glass-panel {
+            background: rgba(16, 20, 30, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .chat-bubble-ai {
+            background: linear-gradient(135deg, #004e92 0%, #000428 100%);
+            border-left: 4px solid #00d2ff;
+            border-radius: 0 12px 12px 12px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .chat-bubble-user {
+            background: rgba(255, 255, 255, 0.1);
+            border-right: 4px solid #00ff88;
+            border-radius: 12px 0 12px 12px;
+            padding: 10px;
+            margin-bottom: 8px;
+            text-align: right;
+            font-size: 0.9rem;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Video input oculto */
+        #input-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Cursor virtual */
+        #hand-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            background: rgba(0, 255, 136, 0.3);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+            transition: width 0.1s, height 0.1s, background 0.1s;
+        }
+
+        #hand-cursor.clicking {
+            background: #00ff88;
+            width: 15px;
+            height: 15px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #00d2ff;
+        }
+
+        /* Timer Bar */
+        #timer-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #111;
+            z-index: 60;
+        }
+
+        #timer-bar {
+            height: 100%;
+            width: 100%;
+            background: #00d2ff;
+            transition: width 1s linear, background 0.3s;
+        }
+
+        .timer-critical {
+            background: #ff0055 !important;
+            box-shadow: 0 0 10px #ff0055;
+        }
+
+        .timer-frozen {
+            background: #00ffff !important;
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+        /* Hub Overlay */
+        #hub-overlay {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader" class="loading-overlay">
+        <i class="fas fa-circle-notch fa-spin fa-3x mb-4"></i>
+        <h2 class="text-xl font-bold tracking-wider">SISTEMA XR-IA</h2>
+        <p class="text-sm text-gray-400 mt-2">Cargando Hands, FaceMesh & Entorno...</p>
+    </div>
+
+    <div id="timer-container">
+        <div id="timer-bar"></div>
+    </div>
+    <div id="canvas-container"></div>
+    <video id="input-video"></video>
+    <div id="hand-cursor"></div>
+
+    <!-- UI: HUD Principal -->
+    <div class="absolute top-0 left-0 w-full h-full pointer-events-none flex flex-col justify-between p-4 z-10">
+
+        <!-- Header -->
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="glass-panel p-4 rounded-lg w-72">
+                <div class="flex items-center gap-3 mb-2">
+                    <div
+                        class="w-10 h-10 rounded-full bg-blue-900 flex items-center justify-center border border-blue-500">
+                        <i class="fas fa-robot text-blue-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-blue-400">Core AI</h3>
+                        <span id="wave-display" class="text-xs text-gray-300">Wave 1 - Pregunta 1/10</span>
+                    </div>
+                </div>
+                <div class="border-t border-gray-700 pt-2 flex justify-between text-sm">
+                    <span>Créditos:</span>
+                    <span id="score-display" class="text-yellow-400 font-bold">0 CR</span>
+                </div>
+                <div class="flex justify-between text-xs mt-1 text-gray-400">
+                    <span>Pistas Disponibles:</span>
+                    <span id="hints-display" class="text-white font-bold">3</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-2 rounded-lg flex gap-2">
+                <button id="btn-camera"
+                    class="bg-gray-700 hover:bg-blue-600 text-white px-3 py-1 rounded transition text-sm pointer-events-auto">
+                    <i class="fas fa-video mr-2"></i>Tracking
+                </button>
+                <button id="btn-hub"
+                    class="hidden bg-gray-700 hover:bg-purple-600 text-white px-3 py-1 rounded transition text-sm pointer-events-auto">
+                    <i class="fas fa-home mr-2"></i>Hub
+                </button>
+            </div>
+        </div>
+
+        <!-- Centro: Preguntas -->
+        <div id="question-panel"
+            class="self-center glass-panel p-6 rounded-xl max-w-lg text-center pointer-events-auto transform transition-all duration-300 scale-0 opacity-0 relative">
+            <div id="hint-overlay"
+                class="hidden absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-20">
+                <i class="fas fa-smile text-yellow-400 text-4xl mb-4 animate-bounce"></i>
+                <p class="text-white font-bold mb-2">¡Sonríe a la cámara!</p>
+                <p class="text-xs text-gray-400">Detectando gesto facial...</p>
+            </div>
+
+            <h2 id="q-category" class="text-xs uppercase tracking-widest text-blue-400 mb-2">Ciencia</h2>
+            <h3 id="q-text" class="text-xl font-bold mb-6">Pregunta...</h3>
+            <div id="answers-grid" class="grid grid-cols-1 gap-3 mb-4"></div>
+
+            <div class="flex justify-center gap-3 border-t border-gray-700 pt-4">
+                <button id="btn-use-hint"
+                    class="text-xs bg-yellow-600/30 hover:bg-yellow-600 text-yellow-200 px-3 py-2 rounded border border-yellow-500/50 flex items-center gap-2">
+                    <i class="fas fa-lightbulb"></i> Usar Pista (Sonrisa)
+                </button>
+                <button id="btn-freeze"
+                    class="hidden text-xs bg-cyan-600/30 hover:bg-cyan-600 text-cyan-200 px-3 py-2 rounded border border-cyan-500/50 flex items-center gap-2">
+                    <i class="fas fa-snowflake"></i> Congelar Tiempo
+                </button>
+            </div>
+        </div>
+
+        <!-- Centro: Hub Overlay (Resultados) -->
+        <div id="hub-overlay"
+            class="self-center absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-50 pointer-events-auto">
+            <div
+                class="glass-panel p-8 rounded-2xl text-center max-w-2xl w-full border-blue-500/50 shadow-2xl shadow-blue-500/20">
+                <h1
+                    class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2">
+                    RESUMEN DE OLA</h1>
+                <div class="grid grid-cols-3 gap-4 my-8">
+                    <div class="p-4 bg-white/5 rounded-lg">
+                        <div class="text-3xl font-bold text-green-400" id="hub-score">0</div>
+                        <div class="text-xs text-gray-400 uppercase">Aciertos</div>
+                    </div>
+                    <div class="p-4 bg-white/5 rounded-lg">
+                        <div class="text-3xl font-bold text-yellow-400" id="hub-credits">0</div>
+                        <div class="text-xs text-gray-400 uppercase">Créditos Totales</div>
+                    </div>
+                    <div class="p-4 bg-white/5 rounded-lg">
+                        <div class="text-3xl font-bold text-purple-400" id="hub-items">0</div>
+                        <div class="text-xs text-gray-400 uppercase">Objetos Desbloqueados</div>
+                    </div>
+                </div>
+
+                <h3 class="text-left text-sm font-bold text-gray-400 mb-4">TIENDA DE POTENCIADORES 3D</h3>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <button id="shop-hint"
+                        class="p-4 border border-gray-600 hover:border-yellow-500 rounded-lg bg-black/40 hover:bg-yellow-900/20 transition text-left group">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-bold text-yellow-400"><i class="fas fa-lightbulb mr-2"></i>Pack de
+                                Pistas</span>
+                            <span class="text-xs bg-gray-700 px-2 py-1 rounded">300 CR</span>
+                        </div>
+                        <p class="text-xs text-gray-400 group-hover:text-gray-300">Recarga 3 pistas de sonrisa.</p>
+                    </button>
+                    <button id="shop-freeze"
+                        class="p-4 border border-gray-600 hover:border-cyan-500 rounded-lg bg-black/40 hover:bg-cyan-900/20 transition text-left group">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-bold text-cyan-400"><i class="fas fa-snowflake mr-2"></i>Congelar
+                                Tiempo</span>
+                            <span class="text-xs bg-gray-700 px-2 py-1 rounded">500 CR</span>
+                        </div>
+                        <p class="text-xs text-gray-400 group-hover:text-gray-300">Añade un item interactivo para parar
+                            el reloj.</p>
+                    </button>
+                </div>
+
+                <button id="btn-next-wave"
+                    class="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-bold text-lg tracking-widest shadow-lg transform hover:scale-105 transition">
+                    INICIAR SIGUIENTE OLA
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer: Chat -->
+        <div class="glass-panel p-4 rounded-lg w-66 self-end pointer-events-auto h-64 overflow-y-auto shadow-2xl border border-blue-500/30 absolute bottom-4 right-4"
+            id="chat-container">
+            <div class="chat-bubble-ai">Sistema en línea. Esperando inicio de secuencia.</div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const WAVE_SIZE = 10;
+        const QUESTION_TIME = 15; // segundos
+
+        // --- 1. STATE MANAGER ---
+        class StateManager {
+            constructor(uiCallback) {
+                this.score = 0; // Créditos
+                this.hints = 3; // Pistas disponibles
+                this.inventory = {
+                    freeze: 0
+                };
+                this.stats = {
+                    correctAnswersInWave: 0,
+                    totalItems: 0
+                };
+                this.uiCallback = uiCallback;
+            }
+
+            update(key, value) {
+                if (key === 'score') this.score += value;
+                if (key === 'hints') this.hints += value;
+
+                this.uiCallback(key, this[key] !== undefined ? this[key] : value);
+            }
+
+            buyItem(item, cost) {
+                if (this.score >= cost) {
+                    this.score -= cost;
+                    if (item === 'hints') this.hints += 3;
+                    if (item === 'freeze') {
+                        this.inventory.freeze++;
+                        this.stats.totalItems++;
+                    }
+                    this.uiCallback('score', this.score);
+                    this.uiCallback('hints', this.hints);
+                    return true;
+                }
+                return false;
+            }
+
+            resetWaveStats() {
+                this.stats.correctAnswersInWave = 0;
+            }
+        }
+
+        // --- 2. VISION SYSTEM (Hands + Face) ---
+        class VisionSystem {
+            constructor(videoElement, cursorElement, callbacks) {
+                this.video = videoElement;
+                this.cursor = cursorElement;
+                this.callbacks = callbacks; // { onMove, onClick, onSmile }
+                this.isActive = false;
+                this.mode = 'HANDS'; // 'HANDS' or 'FACE_HINT'
+
+                // Config Hands
+                this.hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+                this.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7 });
+                this.hands.onResults(this.onHandResults.bind(this));
+
+                // Config Face Mesh (Solo se carga, se usa bajo demanda)
+                this.faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+                this.faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
+                this.faceMesh.onResults(this.onFaceResults.bind(this));
+            }
+
+            async start() {
+                try {
+                    this.camera = new Camera(this.video, {
+                        onFrame: async () => {
+                            if (this.mode === 'HANDS') await this.hands.send({ image: this.video });
+                            if (this.mode === 'FACE_HINT') await this.faceMesh.send({ image: this.video });
+                        },
+                        width: 640, height: 480
+                    });
+                    await this.camera.start();
+                    this.isActive = true;
+                    this.cursor.style.display = 'block';
+                    return true;
+                } catch (e) {
+                    console.error(e);
+                    return false;
+                }
+            }
+
+            setMode(mode) {
+                this.mode = mode;
+                if (mode === 'HANDS') this.cursor.style.display = 'block';
+                else this.cursor.style.display = 'none';
+            }
+
+            onHandResults(results) {
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const lm = results.multiHandLandmarks[0];
+                    const indexTip = lm[8];
+                    const thumbTip = lm[4];
+
+                    // Cursor
+                    const x = 1 - indexTip.x; const y = indexTip.y;
+                    this.cursor.style.left = `${x * 100}%`; this.cursor.style.top = `${y * 100}%`;
+                    this.callbacks.onMove({ x: (x * 2) - 1, y: -(y * 2) + 1 });
+
+                    // Click (Pinza)
+                    const dist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+                    if (dist < 0.05) {
+                        if (!this.lastPinch) { this.cursor.classList.add('clicking'); this.callbacks.onClick(); }
+                        this.lastPinch = true;
+                    } else {
+                        this.cursor.classList.remove('clicking');
+                        this.lastPinch = false;
+                    }
+                }
+            }
+
+            onFaceResults(results) {
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                    const lm = results.multiFaceLandmarks[0];
+                    // Indices para labios: 13 (arriba), 14 (abajo), 61 (izq), 291 (der)
+                    const left = lm[61]; const right = lm[291];
+                    const mouthWidth = Math.hypot(left.x - right.x, left.y - right.y);
+
+                    // Umbral simple de sonrisa: anchura de boca
+                    // Valor empírico, puede variar según distancia
+                    if (mouthWidth > 0.15) { // Si sonríe amplio
+                        this.callbacks.onSmile();
+                    }
+                }
+            }
+        }
+
+        // --- 3. SCENE MANAGER (3D Visuals) ---
+        class SceneManager {
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x050505);
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(0, 1.5, 5);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.container.appendChild(this.renderer.domElement);
+
+                this.itemsGroup = new THREE.Group();
+                this.scene.add(this.itemsGroup);
+
+                this.initWorld();
+                this.animate();
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+
+            initWorld() {
+                const grid = new THREE.GridHelper(50, 50, 0x00d2ff, 0x111111);
+                this.scene.add(grid);
+
+                const ambient = new THREE.AmbientLight(0x404040);
+                const dir = new THREE.DirectionalLight(0xffffff, 1);
+                dir.position.set(5, 10, 7);
+                this.scene.add(ambient, dir);
+
+                // Núcleo
+                const geo = new THREE.IcosahedronGeometry(1, 1);
+                const mat = new THREE.MeshPhongMaterial({ color: 0x00d2ff, wireframe: true, emissive: 0x001133 });
+                this.core = new THREE.Mesh(geo, mat);
+                this.core.position.y = 1.5;
+                this.scene.add(this.core);
+            }
+
+            spawnItem(type) {
+                // Genera item visual en el "Hub" (alrededor del núcleo)
+                const geo = type === 'hints' ? new THREE.ConeGeometry(0.3, 0.6, 8) : new THREE.BoxGeometry(0.4, 0.4, 0.4);
+                const color = type === 'hints' ? 0xffff00 : 0x00ffff;
+                const mat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.5 });
+                const mesh = new THREE.Mesh(geo, mat);
+
+                const angle = Math.random() * Math.PI * 2;
+                const rad = 3 + Math.random();
+                mesh.position.set(Math.cos(angle) * rad, 1 + Math.random(), Math.sin(angle) * rad);
+
+                this.itemsGroup.add(mesh);
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                this.core.rotation.y += 0.005;
+                this.core.rotation.x += 0.002;
+
+                // Rotar items comprados
+                this.itemsGroup.children.forEach(item => {
+                    item.rotation.y += 0.02;
+                    item.position.y += Math.sin(Date.now() * 0.002) * 0.005;
+                });
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // --- 4. APP LOGIC ---
+        class App {
+            constructor() {
+                this.scene = new SceneManager('canvas-container');
+                this.state = new StateManager(this.updateUI.bind(this));
+                this.vision = new VisionSystem(
+                    document.getElementById('input-video'),
+                    document.getElementById('hand-cursor'),
+                    {
+                        onMove: (pos) => {/* Raycast logic can go here if needed */ },
+                        onClick: () => this.simulateClick(),
+                        onSmile: () => this.unlockHint()
+                    }
+                );
+
+                // Variables de Juego
+                this.questions = this.generateQuestions();
+                this.currentQIndex = 0;
+                this.waveCount = 1;
+                this.timer = null;
+                this.timeLeft = QUESTION_TIME;
+                this.isFrozen = false;
+                this.isHintActive = false;
+
+                this.ui = {
+                    score: document.getElementById('score-display'),
+                    hints: document.getElementById('hints-display'),
+                    wave: document.getElementById('wave-display'),
+                    timerBar: document.getElementById('timer-bar'),
+                    qPanel: document.getElementById('question-panel'),
+                    qText: document.getElementById('q-text'),
+                    qCat: document.getElementById('q-category'),
+                    answers: document.getElementById('answers-grid'),
+                    chat: document.getElementById('chat-container'),
+                    hub: document.getElementById('hub-overlay'),
+                    hintOverlay: document.getElementById('hint-overlay'),
+                    btnFreeze: document.getElementById('btn-freeze')
+                };
+
+                this.bindEvents();
+                this.startSystem();
+            }
+
+            generateQuestions() {
+                // Mock Data expandido
+                const base = [
+                    { t: "¿Planeta Rojo?", c: "Astronomía", o: ["Venus", "Marte", "Júpiter"], a: 1, h: "Es el cuarto planeta desde el Sol." },
+                    { t: "Símbolo del Oro", c: "Química", o: ["Ag", "Au", "Fe"], a: 1, h: "Viene del latín Aurum." },
+                    { t: "E = mc^2 es de...", c: "Física", o: ["Newton", "Einstein", "Tesla"], a: 1, h: "Famoso por su teoría de la relatividad." },
+                    { t: "Capital de Japón", c: "Geografía", o: ["Seúl", "Tokio", "Pekín"], a: 1, h: "Ciudad famosa por el cruce de Shibuya." },
+                    { t: "¿Hueso más largo?", c: "Anatomía", o: ["Fémur", "Tibia", "Húmero"], a: 0, h: "Está en el muslo." },
+                    { t: "Padre de la computación", c: "Historia", o: ["Turing", "Gates", "Jobs"], a: 0, h: "Descifró Enigma." },
+                    { t: "Velocidad de la luz", c: "Física", o: ["300k km/s", "150k km/s", "1000 km/s"], a: 0, h: "Es lo más rápido del universo." },
+                    { t: "Pintó la Mona Lisa", c: "Arte", o: ["Van Gogh", "Da Vinci", "Picasso"], a: 1, h: "Renacentista italiano." },
+                    { t: "Raíz cuadrada de 64", c: "Matemáticas", o: ["6", "8", "10"], a: 1, h: "8 por 8." },
+                    { t: "Creador de Facebook", c: "Tecnología", o: ["Musk", "Zuckerberg", "Bezos"], a: 1, h: "Empezó en Harvard." }
+                ];
+                // Duplicar para tener suficientes para el demo
+                return [...base, ...base, ...base];
+            }
+
+            startSystem() {
+                setTimeout(() => {
+                    document.getElementById('loader').style.display = 'none';
+                    this.addChat("AI", "Sistema Inicializado. Wave 1 lista.");
+                    this.startWave();
+                }, 1500);
+            }
+
+            startWave() {
+                this.state.resetWaveStats();
+                this.currentQIndex = 0;
+                this.ui.hub.style.display = 'none';
+                this.ui.wave.textContent = `Wave ${this.waveCount}`;
+                this.nextQuestion();
+            }
+
+            nextQuestion() {
+                if (this.currentQIndex >= WAVE_SIZE) {
+                    this.endWave();
+                    return;
+                }
+
+                const q = this.questions[(this.waveCount * WAVE_SIZE + this.currentQIndex) % this.questions.length];
+                this.currentQ = q;
+
+                // UI Update
+                this.ui.qText.textContent = q.t;
+                this.ui.qCat.textContent = q.c;
+                this.ui.wave.textContent = `Wave ${this.waveCount} - ${this.currentQIndex + 1}/${WAVE_SIZE}`;
+                this.ui.answers.innerHTML = '';
+
+                q.o.forEach((opt, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = "bg-blue-900/50 hover:bg-blue-600 border border-blue-500/30 text-white p-3 rounded transition answer-btn";
+                    btn.textContent = opt;
+                    btn.onclick = () => this.answer(i);
+                    this.ui.answers.appendChild(btn);
+                });
+
+                // Reset estados
+                this.ui.qPanel.classList.remove('scale-0', 'opacity-0');
+                this.ui.qPanel.classList.add('scale-100', 'opacity-100');
+                this.ui.btnFreeze.style.display = this.state.inventory.freeze > 0 ? 'flex' : 'none';
+
+                this.startTimer();
+            }
+
+            startTimer() {
+                this.timeLeft = QUESTION_TIME;
+                this.isFrozen = false;
+                this.ui.timerBar.style.width = '100%';
+                this.ui.timerBar.className = ''; // reset colors
+
+                if (this.timer) clearInterval(this.timer);
+
+                this.timer = setInterval(() => {
+                    if (this.isFrozen) return;
+
+                    this.timeLeft--;
+                    const pct = (this.timeLeft / QUESTION_TIME) * 100;
+                    this.ui.timerBar.style.width = `${pct}%`;
+
+                    if (this.timeLeft <= 5) this.ui.timerBar.classList.add('timer-critical');
+
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.timer);
+                        this.answer(-1); // Time out
+                    }
+                }, 1000);
+            }
+
+            answer(index) {
+                clearInterval(this.timer);
+                // Animación salida
+                this.ui.qPanel.classList.remove('scale-100', 'opacity-100');
+                this.ui.qPanel.classList.add('scale-0', 'opacity-0');
+
+                // Validar
+                let msg = "";
+                if (index === -1) {
+                    msg = "Tiempo agotado.";
+                } else if (index === this.currentQ.a) {
+                    msg = "Correcto. +100 CR";
+                    this.state.update('score', 100);
+                    this.state.stats.correctAnswersInWave++;
+                } else {
+                    msg = `Incorrecto. Era: ${this.currentQ.o[this.currentQ.a]}`;
+                }
+                this.addChat("AI", msg);
+
+                this.currentQIndex++;
+                setTimeout(() => this.nextQuestion(), 1500);
+            }
+
+            // --- FUNCIONES DE AYUDA Y PODERES ---
+            activateHintLogic() {
+                if (this.state.hints <= 0) {
+                    this.addChat("AI", "No tienes pistas. Cómpralas en el Hub.");
+                    return;
+                }
+
+                // Activar modo Face Mesh
+                this.isHintActive = true;
+                this.vision.setMode('FACE_HINT');
+                this.ui.hintOverlay.classList.remove('hidden');
+                this.addChat("AI", "Escaneando rostro... ¡Sonríe para desbloquear!");
+            }
+
+            unlockHint() {
+                if (!this.isHintActive) return;
+
+                this.isHintActive = false;
+                this.vision.setMode('HANDS'); // Volver a manos
+                this.ui.hintOverlay.classList.add('hidden');
+
+                // Gasta pista
+                this.state.update('hints', -1);
+
+                // Mostrar Pista visualmente (elimina 1 opción incorrecta o muestra texto)
+                const hintText = document.createElement('div');
+                hintText.className = "bg-yellow-600 text-white p-2 rounded mt-2 animate-bounce";
+                hintText.innerHTML = `<i class="fas fa-info-circle"></i> Pista: ${this.currentQ.h}`;
+                this.ui.answers.appendChild(hintText);
+
+                this.addChat("AI", "Pista desbloqueada por gesto facial.");
+            }
+
+            freezeTime() {
+                if (this.state.inventory.freeze > 0 && !this.isFrozen) {
+                    this.isFrozen = true;
+                    this.state.inventory.freeze--;
+                    this.ui.timerBar.classList.add('timer-frozen');
+                    this.ui.btnFreeze.style.display = 'none'; // Gastado
+                    this.addChat("AI", "Tiempo congelado temporalmente.");
+                }
+            }
+
+            // --- HUB & SHOP ---
+            endWave() {
+                this.waveCount++;
+                this.ui.hub.style.display = 'flex';
+
+                // Actualizar Stats del Hub
+                document.getElementById('hub-score').textContent = this.state.stats.correctAnswersInWave;
+                document.getElementById('hub-credits').textContent = this.state.score;
+                document.getElementById('hub-items').textContent = this.state.stats.totalItems;
+            }
+
+            // --- UTILS ---
+            bindEvents() {
+                document.getElementById('btn-camera').onclick = () => {
+                    this.vision.start().then(ok => {
+                        if (ok) this.addChat("AI", "Cámara activa.");
+                    });
+                };
+
+                // Eventos In-Game
+                document.getElementById('btn-use-hint').onclick = () => this.activateHintLogic();
+                document.getElementById('btn-freeze').onclick = () => this.freezeTime();
+
+                // Eventos Hub
+                document.getElementById('btn-next-wave').onclick = () => this.startWave();
+
+                document.getElementById('shop-hint').onclick = () => {
+                    if (this.state.buyItem('hints', 300)) {
+                        this.addChat("AI", "Pistas recargadas.");
+                        this.scene.spawnItem('hints');
+                        document.getElementById('hub-credits').textContent = this.state.score; // Actualizar visual
+                    } else this.addChat("AI", "Créditos insuficientes.");
+                };
+
+                document.getElementById('shop-freeze').onclick = () => {
+                    if (this.state.buyItem('freeze', 500)) {
+                        this.addChat("AI", "Congelador adquirido.");
+                        this.scene.spawnItem('freeze');
+                        document.getElementById('hub-credits').textContent = this.state.score;
+                    } else this.addChat("AI", "Créditos insuficientes.");
+                };
+            }
+
+            addChat(who, text) {
+                const div = document.createElement('div');
+                div.className = who === 'AI' ? 'chat-bubble-ai' : 'chat-bubble-user';
+                div.textContent = text;
+                this.ui.chat.appendChild(div);
+                this.ui.chat.scrollTop = this.ui.chat.scrollHeight;
+            }
+
+            simulateClick() {
+                // Simulación click para manos
+                const cursor = document.getElementById('hand-cursor');
+                const rect = cursor.getBoundingClientRect();
+                const el = document.elementFromPoint(rect.left, rect.top);
+                if (el && el.click) el.click();
+            }
+
+            updateUI(key, val) {
+                if (key === 'score') this.ui.score.textContent = `${val} CR`;
+                if (key === 'hints') this.ui.hints.textContent = val;
+            }
+        }
+
+        window.onload = () => new App();
+    </script>
+</body>
+
+</html>
