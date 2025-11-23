@@ -1,0 +1,162 @@
+/* Extracted styles from index.html */
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #111;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+/* UI Overlay futurista */
+.glass-panel {
+    background: rgba(16, 20, 30, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.chat-bubble-ai {
+    background: linear-gradient(135deg, #004e92 0%, #000428 100%);
+    border-left: 4px solid #00d2ff;
+    border-radius: 0 12px 12px 12px;
+    padding: 10px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.chat-bubble-user {
+    background: rgba(255, 255, 255, 0.1);
+    border-right: 4px solid #00ff88;
+    border-radius: 12px 0 12px 12px;
+    padding: 10px;
+    margin-bottom: 8px;
+    text-align: right;
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Video input oculto */
+#input-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Cursor virtual */
+#hand-cursor {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #00ff88;
+    border-radius: 50%;
+    background: rgba(0, 255, 136, 0.3);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 50;
+    display: none;
+    transition: width 0.1s, height 0.1s, background 0.1s;
+}
+
+#hand-cursor.clicking {
+    background: #00ff88;
+    width: 15px;
+    height: 15px;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    color: #00d2ff;
+}
+
+/* Timer Bar */
+#timer-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: #111;
+    z-index: 60;
+}
+
+#timer-bar {
+    height: 100%;
+    width: 100%;
+    background: #00d2ff;
+    transition: width 1s linear, background 0.3s;
+}
+
+/* Score / Credits flash (visual feedback al ganar puntos) */
+@keyframes scorePulse {
+    0% {
+        transform: scale(1);
+        text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+    }
+
+    50% {
+        transform: scale(1.12);
+        text-shadow: 0 0 20px rgba(255, 220, 120, 0.9);
+    }
+
+    100% {
+        transform: scale(1);
+        text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+    }
+}
+
+.score-flash {
+    animation: scorePulse 0.8s ease-in-out;
+    color: #fff !important;
+    filter: drop-shadow(0 0 8px rgba(255, 200, 80, 0.9));
+}
+
+.timer-critical {
+    background: #ff0055 !important;
+    box-shadow: 0 0 10px #ff0055;
+}
+
+.timer-frozen {
+    background: #00ffff !important;
+    box-shadow: 0 0 10px #00ffff;
+}
+
+/* Hub Overlay */
+#hub-overlay {
+    display: none;
+}

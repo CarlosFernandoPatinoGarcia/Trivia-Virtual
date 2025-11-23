@@ -1,0 +1,765 @@
+// --- CONFIG ---
+const WAVE_SIZE = 10;
+const QUESTION_TIME = 15; // segundos
+
+// --- 1. STATE MANAGER ---
+class StateManager {
+    constructor(uiCallback) {
+        this.score = 0; // Créditos
+        this.hints = 3; // Pistas disponibles
+        this.inventory = {
+            freeze: 0
+        };
+        this.stats = {
+            correctAnswersInWave: 0,
+            totalItems: 0
+        };
+        this.uiCallback = uiCallback;
+    }
+
+    update(key, value) {
+        if (key === 'score') this.score += value;
+        if (key === 'hints') this.hints += value;
+
+        this.uiCallback(key, this[key] !== undefined ? this[key] : value);
+    }
+
+    buyItem(item, cost) {
+        if (this.score >= cost) {
+            this.score -= cost;
+            if (item === 'hints') this.hints += 3;
+            if (item === 'freeze') {
+                this.inventory.freeze++;
+                this.stats.totalItems++;
+            }
+            this.uiCallback('score', this.score);
+            this.uiCallback('hints', this.hints);
+            return true;
+        }
+        return false;
+    }
+
+    resetWaveStats() {
+        this.stats.correctAnswersInWave = 0;
+    }
+}
+
+// --- 2. VISION SYSTEM (Hands + Face) ---
+class VisionSystem {
+    constructor(videoElement, cursorElement, callbacks) {
+        this.video = videoElement;
+        this.cursor = cursorElement;
+        this.callbacks = callbacks; // { onMove, onClick, onSmile }
+        this.isActive = false;
+        this.mode = 'HANDS'; // 'HANDS' or 'FACE_HINT'
+
+        // Config Hands
+        this.hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        this.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7 });
+        this.hands.onResults(this.onHandResults.bind(this));
+
+        // Config Face Mesh (Solo se carga, se usa bajo demanda)
+        this.faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+        this.faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7 });
+        this.faceMesh.onResults(this.onFaceResults.bind(this));
+    }
+
+    async start() {
+        try {
+            this.camera = new Camera(this.video, {
+                onFrame: async () => {
+                    if (this.mode === 'HANDS') await this.hands.send({ image: this.video });
+                    if (this.mode === 'FACE_HINT') await this.faceMesh.send({ image: this.video });
+                },
+                width: 640, height: 480
+            });
+            await this.camera.start();
+            this.isActive = true;
+            this.cursor.style.display = 'block';
+            return true;
+        } catch (e) {
+            console.error(e);
+            return false;
+        }
+    }
+
+    setMode(mode) {
+        this.mode = mode;
+        if (mode === 'HANDS') this.cursor.style.display = 'block';
+        else this.cursor.style.display = 'none';
+    }
+
+    onHandResults(results) {
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const lm = results.multiHandLandmarks[0];
+            const indexTip = lm[8];
+            const thumbTip = lm[4];
+
+            // Cursor
+            const x = 1 - indexTip.x; const y = indexTip.y;
+            this.cursor.style.left = `${x * 100}%`; this.cursor.style.top = `${y * 100}%`;
+            this.callbacks.onMove({ x: (x * 2) - 1, y: -(y * 2) + 1 });
+
+            // Click (Pinza)
+            const dist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+            if (dist < 0.05) {
+                if (!this.lastPinch) { this.cursor.classList.add('clicking'); this.callbacks.onClick(); }
+                this.lastPinch = true;
+            } else {
+                this.cursor.classList.remove('clicking');
+                this.lastPinch = false;
+            }
+        }
+    }
+
+    onFaceResults(results) {
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            const lm = results.multiFaceLandmarks[0];
+            // Indices para labios: 13 (arriba), 14 (abajo), 61 (izq), 291 (der)
+            const left = lm[61]; const right = lm[291];
+            const mouthWidth = Math.hypot(left.x - right.x, left.y - right.y);
+
+            // Umbral simple de sonrisa: anchura de boca
+            // Valor empírico, puede variar según distancia
+            if (mouthWidth > 0.15) { // Si sonríe amplio
+                this.callbacks.onSmile();
+            }
+        }
+    }
+}
+
+// --- 3. SCENE MANAGER (3D Visuals) ---
+class SceneManager {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x050505);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.set(0, 1.5, 5);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        // XR disabled until a session is requested by the WebXR manager
+        this.renderer.xr.enabled = false;
+        this.container.appendChild(this.renderer.domElement);
+
+        // Clock for animation updates and hook for external update callbacks
+        this.clock = new THREE.Clock();
+        this.onTick = null; // external callback: function(delta)
+
+        this.itemsGroup = new THREE.Group();
+        this.scene.add(this.itemsGroup);
+
+        this.initWorld();
+        this.animate();
+        window.addEventListener('resize', () => {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+
+    initWorld() {
+        const grid = new THREE.GridHelper(50, 50, 0x00d2ff, 0x111111);
+        this.scene.add(grid);
+
+        const ambient = new THREE.AmbientLight(0x404040);
+        const dir = new THREE.DirectionalLight(0xffffff, 1);
+        dir.position.set(5, 10, 7);
+        this.scene.add(ambient, dir);
+
+        // Núcleo
+        const geo = new THREE.IcosahedronGeometry(1, 1);
+        const mat = new THREE.MeshPhongMaterial({ color: 0x00d2ff, wireframe: true, emissive: 0x001133 });
+        this.core = new THREE.Mesh(geo, mat);
+        this.core.position.y = 1.5;
+        this.scene.add(this.core);
+    }
+
+    spawnItem(type) {
+        // Genera item visual en el "Hub" (alrededor del núcleo)
+        const geo = type === 'hints' ? new THREE.ConeGeometry(0.3, 0.6, 8) : new THREE.BoxGeometry(0.4, 0.4, 0.4);
+        const color = type === 'hints' ? 0xffff00 : 0x00ffff;
+        const mat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.5 });
+        const mesh = new THREE.Mesh(geo, mat);
+
+        const angle = Math.random() * Math.PI * 2;
+        const rad = 3 + Math.random();
+        mesh.position.set(Math.cos(angle) * rad, 1 + Math.random(), Math.sin(angle) * rad);
+
+        this.itemsGroup.add(mesh);
+    }
+
+    animate() {
+        // Use Three.js XR-friendly loop. External systems can subscribe via onTick(delta).
+        this.renderer.setAnimationLoop(() => {
+            const delta = this.clock.getDelta();
+            this.core.rotation.y += 0.005;
+            this.core.rotation.x += 0.002;
+
+            // Rotar items comprados
+            this.itemsGroup.children.forEach(item => {
+                item.rotation.y += 0.02;
+                item.position.y += Math.sin(Date.now() * 0.002) * 0.005;
+            });
+
+            // Call external per-frame updates (e.g., avatar mixers)
+            try {
+                if (typeof this.onTick === 'function') this.onTick(delta);
+            } catch (e) { console.warn('onTick error', e); }
+
+            this.renderer.render(this.scene, this.camera);
+        });
+    }
+}
+
+// --- 4. APP LOGIC ---
+class App {
+    constructor() {
+        this.scene = new SceneManager('canvas-container');
+        this.state = new StateManager(this.updateUI.bind(this));
+        this.vision = new VisionSystem(
+            document.getElementById('input-video'),
+            document.getElementById('hand-cursor'),
+            {
+                onMove: (pos) => {/* Raycast logic can go here if needed */ },
+                onClick: () => this.simulateClick(),
+                onSmile: () => this.unlockHint()
+            }
+        );
+
+        // Avatar controller: carga un avatar de prueba (GLB público) y permite reproducir animaciones
+        // Fuente de ejemplo: Fox (incluye animaciones). Puedes cambiar por tus GLBs en /assets.
+        this.avatarController = null;
+        // const sampleAvatarUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Fox/glTF-Binary/Fox.glb';
+
+        try {
+            // Configuración: indica aquí los GLB locales que has subido en `assets/3Dmodels/`.
+            // Cada archivo puede contener su propio modelo + animaciones.
+            // Ejemplo: { neutral: 'assets/3Dmodels/avatar_base.glb', incorrect: 'assets/3Dmodels/avatar_anim.glb', correct: 'assets/3Dmodels/avatar_correct.glb' }
+            // Per-state avatar entries can be a string (src) or an object { src, desiredHeight, normalize }
+            const AVATAR_STATE_FILES = {
+                neutral: { src: 'assets/3Dmodels/idle_duo.glb', desiredHeight: 0.010 },
+                correct: { src: 'assets/3Dmodels/Victory_duo.glb', desiredHeight: 0.010 },
+                incorrect: { src: 'assets/3Dmodels/Defeated_duo.glb', desiredHeight: 0.010 }
+            };
+
+            this.avatarController = new AvatarController(this.scene.scene, { scale: 1.5, states: AVATAR_STATE_FILES });
+
+            // Cargar solo el estado neutral al inicio y mostrarlo automáticamente.
+            if (AVATAR_STATE_FILES.neutral) {
+                const entry = AVATAR_STATE_FILES.neutral;
+                const src = (typeof entry === 'string') ? entry : entry.src;
+                const opts = (typeof entry === 'object') ? { desiredHeight: entry.desiredHeight, normalize: entry.normalize } : {};
+                this.avatarController.loadState('neutral', src, opts).then(info => {
+                    // mostrar neutral (sin reproducir animación obligatoria)
+                    if (this.avatarController.models['neutral']) {
+                        this.avatarController.models['neutral'].visible = true;
+                        // Aplicar rotación inicial a todos los modelos (90° a la izquierda)
+                        try {
+                            this.avatarController.setRotationAll(0, Math.PI / 4.8, 0);
+                            // this.avatarController.lookAtCamera(this.scene.camera);
+                        } catch (e) { console.warn('No se pudo aplicar rotación inicial:', e); }
+                    }
+                    this.addChat('AI', `Avatar neutral cargado (${info.animations.length} anim).`);
+                }).catch(err => console.warn('No se pudo cargar avatar neutral:', err));
+            }
+
+            // Guardar mapping de URLs en el controlador para uso bajo demanda
+            this.avatarController.opts = this.avatarController.opts || {};
+            this.avatarController.opts.states = AVATAR_STATE_FILES;
+
+            // Optionally use <model-viewer> based loader if available (HTML-first, modular)
+            let modelViewerManager = null;
+            if (window.ModelViewerManager) {
+                try {
+                    modelViewerManager = new ModelViewerManager({ container: document.getElementById('canvas-container') });
+                    // Load neutral into model-viewer if provided (supports object or string entries)
+                    if (AVATAR_STATE_FILES.neutral) {
+                        const entry = AVATAR_STATE_FILES.neutral;
+                        const src = (typeof entry === 'string') ? entry : entry.src;
+                        modelViewerManager.loadState('neutral', src).then(() => {
+                            this.addChat('AI', 'Model-viewer neutral cargado.');
+                        }).catch(err => console.warn('No se pudo cargar model-viewer neutral:', err));
+                    }
+                } catch (e) { console.warn('ModelViewerManager init failed', e); }
+            }
+
+            // Audio manager (tones). Puedes pasar un mapping de eventName -> ruta en `assets/`.
+            // Ejemplo: new AudioManager({ correct: 'assets/sfx_correct.wav' })
+            try {
+                // No pasamos SFX en el mapping: se usarán los tonos internos de AudioManager.
+                // Solo indicamos la ruta de la música de fondo si quieres usar un MP3.
+                const AUDIO_MAP = {
+                    background: 'assets/audio/music_bg.mp3'
+                };
+
+                this.audio = new AudioManager(AUDIO_MAP);
+
+                // Música de fondo opcional: se intentará reproducir tras la primera interacción del usuario.
+                if (this.audio.mapping && this.audio.mapping.background) {
+                    try {
+                        this._bgMusic = new Audio(this.audio.mapping.background);
+                        this._bgMusic.loop = true;
+                        this._bgMusic.volume = 0.22;
+
+                        // Intento de reproducción tras primer gesto del usuario (por políticas de autoplay)
+                        const tryPlayBg = async () => {
+                            try { await this._bgMusic.play(); } catch (e) { /* autoplay bloqueado, se reproducirá tras interacción */ }
+                            document.removeEventListener('click', tryPlayBg, true);
+                        };
+                        document.addEventListener('click', tryPlayBg, { once: true, capture: true });
+                    } catch (e) { console.warn('Could not init background music', e); }
+                }
+            } catch (e) { console.warn('AudioManager init failed', e); }
+
+            // Helper: carga y reproduce un estado (por ejemplo 'correct' o 'incorrect').
+            // REEMPLAZA tu método playAvatarState actual con este:
+            this.playAvatarState = async (stateName) => {
+                try {
+                    // 1. Primero cargar y reproducir el estado solicitado
+                    const urls = (this.avatarController && this.avatarController.opts && this.avatarController.opts.states) || {};
+
+                    if (this.avatarController.models[stateName]) {
+                        await this.avatarController.playState(stateName);
+                    } else if (urls[stateName]) {
+                        const entry = urls[stateName];
+                        const src = (typeof entry === 'string') ? entry : entry.src;
+                        const loadOpts = (typeof entry === 'object') ? {
+                            desiredHeight: entry.desiredHeight,
+                            normalize: entry.normalize
+                        } : {};
+
+                        await this.avatarController.loadState(stateName, src, loadOpts);
+                        await this.avatarController.playState(stateName);
+                    } else {
+                        // Fallback a métodos básicos
+                        if (stateName === 'correct') await this.avatarController.playCorrect();
+                        else if (stateName === 'incorrect') await this.avatarController.playIncorrect();
+                    }
+
+                    // 2. SOLUCIÓN CLAVE: Solo volver a neutral si NO es neutral
+                    if (stateName !== 'neutral' && this.avatarController.models['neutral']) {
+                        // Esperar a que termine la animación actual + pequeño delay
+                        const animationDuration = 0; // Duración estimada de animaciones
+
+                        setTimeout(() => {
+                            try {
+                                // Hacer visible solo neutral
+                                Object.keys(this.avatarController.models).forEach(k => {
+                                    if (this.avatarController.models[k]) {
+                                        this.avatarController.models[k].visible = (k === 'neutral');
+                                    }
+                                });
+
+                                // 🔥 FORZAR reproducción en loop del neutral
+                                const neutralMixer = this.avatarController.mixers['neutral'];
+                                const neutralActions = this.avatarController.actionsMap['neutral'] || [];
+
+                                if (neutralMixer && neutralActions.length > 0) {
+                                    // Detener cualquier animación previa
+                                    neutralActions.forEach(action => {
+                                        try {
+                                            action.stop();
+                                            action.reset();
+                                        } catch (e) { }
+                                    });
+
+                                    // Configurar y reproducir en loop
+                                    const mainAction = neutralActions[0];
+                                    mainAction.setLoop(THREE.LoopRepeat, Infinity);
+                                    mainAction.reset();
+                                    mainAction.play();
+
+                                    console.log('✅ Animación neutral restaurada en loop');
+                                }
+                            } catch (e) {
+                                console.warn('Error restaurando animación neutral:', e);
+                            }
+                        }, animationDuration);
+                    }
+
+                } catch (err) {
+                    console.warn('playAvatarState error', err);
+                }
+            };
+
+            // Hook avatar update into the scene animation loop
+            this.scene.onTick = (delta) => {
+                try {
+                    if (this.avatarController && typeof this.avatarController.update === 'function') this.avatarController.update(delta);
+                } catch (e) { console.warn('Avatar update error', e); }
+            };
+
+            // Add WebXR entry/exit button to the page (if supported)
+            if (window.WebXRManager) {
+                try {
+                    const xrBtn = WebXRManager.createXRButton(this.scene.renderer);
+                    document.body.appendChild(xrBtn);
+                } catch (e) { console.warn('Error creating XR button', e); }
+            }
+        } catch (e) {
+            console.warn('AvatarController no disponible', e);
+        }
+
+        // Variables de Juego
+        this.questions = this.generateQuestions();
+        this.currentQIndex = 0;
+        this.waveCount = 1;
+        this.timer = null;
+        this.timeLeft = QUESTION_TIME;
+        this.isFrozen = false;
+        this.isHintActive = false;
+
+        this.ui = {
+            score: document.getElementById('score-display'),
+            hints: document.getElementById('hints-display'),
+            wave: document.getElementById('wave-display'),
+            timerBar: document.getElementById('timer-bar'),
+            qPanel: document.getElementById('question-panel'),
+            qText: document.getElementById('q-text'),
+            qCat: document.getElementById('q-category'),
+            answers: document.getElementById('answers-grid'),
+            //chat: document.getElementById('chat-container'),
+            hub: document.getElementById('hub-overlay'),
+            hintOverlay: document.getElementById('hint-overlay'),
+            btnFreeze: document.getElementById('btn-freeze')
+        };
+
+        this.bindEvents();
+
+        // 5. --- INTEGRACIÓN DEL CHATBOT MODULAR (AQUÍ ES EL CAMBIO) ---
+        // Verificamos que la clase ChatbotSystem exista (cargada desde chatbot.js)
+        if (typeof ChatbotSystem !== 'undefined') {
+            // Le pasamos 'this' (la instancia de App) para que el bot pueda controlar el juego
+            this.chatbot = new ChatbotSystem(this);
+        } else {
+            console.warn("El archivo js/chatbot.js no se ha cargado o la clase no existe.");
+        }
+
+        this.startSystem();
+    }
+
+    generateQuestions() {
+        // Mock Data expandido
+        const base = [
+            { t: "¿Planeta Rojo?", c: "Astronomía", o: ["Venus", "Marte", "Júpiter"], a: 1, h: "Es el cuarto planeta desde el Sol." },
+            { t: "Símbolo del Oro", c: "Química", o: ["Ag", "Au", "Fe"], a: 1, h: "Viene del latín Aurum." },
+            { t: "E = mc^2 es de...", c: "Física", o: ["Newton", "Einstein", "Tesla"], a: 1, h: "Famoso por su teoría de la relatividad." },
+            { t: "Capital de Japón", c: "Geografía", o: ["Seúl", "Tokio", "Pekín"], a: 1, h: "Ciudad famosa por el cruce de Shibuya." },
+            { t: "¿Hueso más largo?", c: "Anatomía", o: ["Fémur", "Tibia", "Húmero"], a: 0, h: "Está en el muslo." },
+            { t: "Padre de la computación", c: "Historia", o: ["Turing", "Gates", "Jobs"], a: 0, h: "Descifró Enigma." },
+            { t: "Velocidad de la luz", c: "Física", o: ["300k km/s", "150k km/s", "1000 km/s"], a: 0, h: "Es lo más rápido del universo." },
+            { t: "Pintó la Mona Lisa", c: "Arte", o: ["Van Gogh", "Da Vinci", "Picasso"], a: 1, h: "Renacentista italiano." },
+            { t: "Raíz cuadrada de 64", c: "Matemáticas", o: ["6", "8", "10"], a: 1, h: "8 por 8." },
+            { t: "Creador de Facebook", c: "Tecnología", o: ["Musk", "Zuckerberg", "Bezos"], a: 1, h: "Empezó en Harvard." }
+        ];
+        // Duplicar para tener suficientes para el demo
+        return [...base, ...base, ...base];
+    }
+
+    startSystem() {
+        setTimeout(() => {
+            document.getElementById('loader').style.display = 'none';
+            this.addChat("AI", "Sistema Inicializado. Wave 1 lista.");
+            this.startWave();
+        }, 1500);
+    }
+
+    startWave() {
+        this.state.resetWaveStats();
+        this.currentQIndex = 0;
+        this.ui.hub.style.display = 'none';
+        this.ui.wave.textContent = `Wave ${this.waveCount}`;
+        // Ensure neutral avatar is visible (load if needed)
+        try {
+            const urls = (this.avatarController && this.avatarController.opts && this.avatarController.opts.states) || {};
+            if (this.avatarController && this.avatarController.models && this.avatarController.models['neutral']) {
+                // make sure neutral is visible
+                Object.keys(this.avatarController.models).forEach(k => { this.avatarController.models[k].visible = (k === 'neutral'); });
+            } else if (urls['neutral'] && this.avatarController) {
+                this.avatarController.loadState('neutral', urls['neutral']).then(async info => {
+                    try {
+                        if (this.avatarController.models['neutral']) {
+                            this.avatarController.models['neutral'].visible = true;
+                            // ensure neutral animation is playing
+                            if (typeof this.avatarController.playState === 'function') await this.avatarController.playState('neutral');
+                        }
+                    } catch (e) { console.warn('Error playing neutral after load in startWave', e); }
+                }).catch(e => console.warn('No se pudo cargar neutral en startWave', e));
+            }
+        } catch (e) { console.warn(e); }
+
+        this.nextQuestion();
+    }
+
+    nextQuestion() {
+        if (this.currentQIndex >= WAVE_SIZE) {
+            this.endWave();
+            return;
+        }
+
+        const q = this.questions[(this.waveCount * WAVE_SIZE + this.currentQIndex) % this.questions.length];
+        this.currentQ = q;
+
+        // UI Update
+        this.ui.qText.textContent = q.t;
+        this.ui.qCat.textContent = q.c;
+        this.ui.wave.textContent = `Wave ${this.waveCount} - ${this.currentQIndex + 1}/${WAVE_SIZE}`;
+        this.ui.answers.innerHTML = '';
+
+        q.o.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = "bg-blue-900/50 hover:bg-blue-600 border border-blue-500/30 text-white p-3 rounded transition answer-btn";
+            btn.textContent = opt;
+            btn.onclick = () => { if (this.audio) this.audio.play('click'); this.answer(i); };
+            this.ui.answers.appendChild(btn);
+        });
+
+        // Reset estados
+        this.ui.qPanel.classList.remove('scale-0', 'opacity-0');
+        this.ui.qPanel.classList.add('scale-100', 'opacity-100');
+        this.ui.btnFreeze.style.display = this.state.inventory.freeze > 0 ? 'flex' : 'none';
+
+        this.startTimer();
+    }
+
+    startTimer() {
+        this.timeLeft = QUESTION_TIME;
+        this.isFrozen = false;
+        this.ui.timerBar.style.width = '100%';
+        this.ui.timerBar.className = ''; // reset colors
+
+        if (this.timer) clearInterval(this.timer);
+
+        this.timer = setInterval(() => {
+            if (this.isFrozen) return;
+
+            this.timeLeft--;
+            const pct = (this.timeLeft / QUESTION_TIME) * 100;
+            this.ui.timerBar.style.width = `${pct}%`;
+
+            // Visual + audio warning when time is low
+            if (this.timeLeft <= 5 && this.timeLeft > 0) {
+                this.ui.timerBar.classList.add('timer-critical');
+                // Play a short tick each second when <=5 (will use mapping if provided)
+                try { if (this.audio) this.audio.play('time_tick'); } catch (e) { }
+            }
+
+            // Extra urgent pattern for the last 3 seconds
+            if (this.timeLeft <= 3 && this.timeLeft > 0) {
+                try { if (this.audio) this.audio.play('time_last'); } catch (e) { }
+            }
+
+            if (this.timeLeft <= 0) {
+                clearInterval(this.timer);
+                // Optionally play a final timeout warning
+                try { if (this.audio) this.audio.play('time_warning'); } catch (e) { }
+                this.answer(-1); // Time out
+            }
+        }, 1000);
+    }
+
+    answer(index) {
+        clearInterval(this.timer);
+        // Animación salida
+        this.ui.qPanel.classList.remove('scale-100', 'opacity-100');
+        this.ui.qPanel.classList.add('scale-0', 'opacity-0');
+
+        // Validar
+        let msg = "";
+        if (index === -1) {
+            msg = "Tiempo agotado.";
+            try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
+            if (this.audio) this.audio.play('incorrect');
+        } else if (index === this.currentQ.a) {
+            msg = "Correcto. +100 CR";
+            this.state.update('score', 100);
+            // Visual feedback: flash the score/credits display
+            try { this.flashScore(); } catch (e) { }
+            this.state.stats.correctAnswersInWave++;
+            try { if (this.playAvatarState) this.playAvatarState('correct'); else this.avatarController && this.avatarController.playCorrect(); } catch (e) { }
+            if (this.audio) { this.audio.play('correct'); setTimeout(() => { this.audio.play('points'); }, 120); }
+        } else {
+            msg = `Incorrecto. Era: ${this.currentQ.a}`;
+            try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
+            if (this.audio) this.audio.play('incorrect');
+        }
+        this.addChat("AI", msg);
+
+        this.currentQIndex++;
+        setTimeout(() => this.nextQuestion(), 1500);
+    }
+
+    // --- FUNCIONES DE AYUDA Y PODERES ---
+    activateHintLogic() {
+        if (this.state.hints <= 0) {
+            this.addChat("AI", "No tienes pistas. Cómpralas en el Hub.");
+            return;
+        }
+
+        // Activar modo Face Mesh
+        this.isHintActive = true;
+        this.vision.setMode('FACE_HINT');
+        this.ui.hintOverlay.classList.remove('hidden');
+        this.addChat("AI", "Escaneando rostro... ¡Sonríe para desbloquear!");
+    }
+
+    unlockHint() {
+        if (!this.isHintActive) return;
+
+        this.isHintActive = false;
+        this.vision.setMode('HANDS'); // Volver a manos
+        this.ui.hintOverlay.classList.add('hidden');
+
+        // Gasta pista
+        this.state.update('hints', -1);
+
+        // Mostrar Pista visualmente (elimina 1 opción incorrecta o muestra texto)
+        const hintText = document.createElement('div');
+        hintText.className = "bg-yellow-600 text-white p-2 rounded mt-2 animate-bounce";
+        hintText.innerHTML = `<i class="fas fa-info-circle"></i> Pista: ${this.currentQ.h}`;
+        this.ui.answers.appendChild(hintText);
+
+        this.addChat("AI", "Pista desbloqueada por gesto facial.");
+    }
+
+    freezeTime() {
+        if (this.state.inventory.freeze > 0 && !this.isFrozen) {
+            this.isFrozen = true;
+            this.state.inventory.freeze--;
+            this.ui.timerBar.classList.add('timer-frozen');
+            this.ui.btnFreeze.style.display = 'none'; // Gastado
+            this.addChat("AI", "Tiempo congelado temporalmente.");
+        }
+    }
+
+    // --- HUB & SHOP ---
+    endWave() {
+        this.waveCount++;
+        this.ui.hub.style.display = 'flex';
+
+        // Actualizar Stats del Hub
+        document.getElementById('hub-score').textContent = this.state.stats.correctAnswersInWave;
+        document.getElementById('hub-credits').textContent = this.state.score;
+        document.getElementById('hub-items').textContent = this.state.stats.totalItems;
+    }
+
+    // --- UTILS ---
+    bindEvents() {
+        // Safe DOM lookups: verify elements exist before assigning handlers.
+        const btnCamera = document.getElementById('btn-camera');
+        if (btnCamera) {
+            btnCamera.onclick = () => {
+                if (this.audio) this.audio.play('click');
+                this.vision.start().then(ok => {
+                    if (ok) this.addChat("AI", "Cámara activa.");
+                });
+            };
+        }
+
+        // Eventos In-Game
+        const btnUseHint = document.getElementById('btn-use-hint');
+        if (btnUseHint) {
+            btnUseHint.onclick = () => {
+                if (this.audio) this.audio.play('click');
+                // Antes de activar la lógica de pista (FaceMesh) nos aseguramos de solicitar permisos
+                // y arrancar la cámara. Si no se consigue, avisamos al usuario.
+                this.vision.start().then(ok => {
+                    if (ok) {
+                        this.activateHintLogic();
+                    } else {
+                        this.addChat('AI', 'No se pudo activar la cámara para la pista. Revisa permisos.');
+                    }
+                }).catch(err => {
+                    console.warn('Camera start error for hint', err);
+                    this.addChat('AI', 'Error al iniciar la cámara.');
+                });
+            };
+        }
+
+        const btnFreeze = document.getElementById('btn-freeze');
+        if (btnFreeze) btnFreeze.onclick = () => { if (this.audio) this.audio.play('click'); this.freezeTime(); };
+
+        // Cancel hint scan button
+        const btnCancelHint = document.getElementById('btn-cancel-hint');
+        if (btnCancelHint) btnCancelHint.onclick = () => {
+            if (!this.isHintActive) return;
+            this.isHintActive = false;
+            this.vision.setMode('HANDS');
+            this.ui.hintOverlay.classList.add('hidden');
+            if (this.audio) this.audio.play('cancel');
+            this.addChat('AI', 'Escaneo cancelado.');
+        };
+
+        // Eventos Hub (safe)
+        const btnNextWave = document.getElementById('btn-next-wave');
+        if (btnNextWave) btnNextWave.onclick = () => { if (this.audio) this.audio.play('click'); this.startWave(); };
+
+        const shopHint = document.getElementById('shop-hint');
+        if (shopHint) {
+            shopHint.onclick = () => {
+                if (this.audio) this.audio.play('click');
+                if (this.state.buyItem('hints', 300)) {
+                    this.addChat("AI", "Pistas recargadas.");
+                    this.scene.spawnItem('hints');
+                    const hubCredits = document.getElementById('hub-credits');
+                    if (hubCredits) hubCredits.textContent = this.state.score; // Actualizar visual
+                } else this.addChat("AI", "Créditos insuficientes.");
+            };
+        }
+
+        const shopFreeze = document.getElementById('shop-freeze');
+        if (shopFreeze) {
+            shopFreeze.onclick = () => {
+                if (this.audio) this.audio.play('click');
+                if (this.state.buyItem('freeze', 500)) {
+                    this.addChat("AI", "Congelador adquirido.");
+                    this.scene.spawnItem('freeze');
+                    const hubCredits = document.getElementById('hub-credits');
+                    if (hubCredits) hubCredits.textContent = this.state.score;
+                } else this.addChat("AI", "Créditos insuficientes.");
+            };
+        }
+    }
+
+    addChat(who, text) {
+        // Si el módulo del chatbot existe, le pedimos a él que pinte el mensaje
+        if (this.chatbot) {
+            this.chatbot.renderMessage(who, text);
+        } else {
+            // Por si acaso el archivo JS falló al cargar, lo vemos en consola
+            console.log(`[${who}]: ${text}`);
+        }
+    }
+
+    simulateClick() {
+        // Simulación click para manos
+        const cursor = document.getElementById('hand-cursor');
+        const rect = cursor.getBoundingClientRect();
+        const el = document.elementFromPoint(rect.left, rect.top);
+        if (el && el.click) el.click();
+    }
+
+    updateUI(key, val) {
+        if (key === 'score') this.ui.score.textContent = `${val} CR`;
+        if (key === 'hints') this.ui.hints.textContent = val;
+    }
+
+    flashScore() {
+        try {
+            const el = this.ui.score;
+            if (el) {
+                el.classList.add('score-flash');
+                setTimeout(() => el.classList.remove('score-flash'), 350);
+            }
+
+            const hubCredits = document.getElementById('hub-credits');
+            if (hubCredits) {
+                hubCredits.classList.add('score-flash');
+                setTimeout(() => hubCredits.classList.remove('score-flash'), 500);
+            }
+        } catch (e) { /* silent */ }
+    }
+}
+
+window.onload = () => new App();
