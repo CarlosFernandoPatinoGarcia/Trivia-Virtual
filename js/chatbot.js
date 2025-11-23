@@ -224,10 +224,10 @@ class ChatbotSystem {
         Contexto del Jugador:
         - Créditos: ${this.app.state.score}
         - Pistas: ${this.app.state.hints}
-        - Ola: ${this.app.waveCount}
+        - Oleada: ${this.app.waveCount}
         
         TUS COMANDOS (Si el usuario pide una acción, agrega el código al final):
-        {{START_WAVE}} = Iniciar juego/ola
+        {{START_WAVE}} = Iniciar juego/Oleada
         {{BUY_HINT}} = Comprar pista (300cr)
         {{BUY_FREEZE}} = Comprar congelar (500cr)
         {{USE_HINT}} = Usar pista
@@ -310,10 +310,10 @@ class ChatbotSystem {
         // 2. CONTROL DE JUEGO
         else if (lower.includes('iniciar') || lower.includes('empezar') || lower.includes('comenzar') || lower.includes('start') || lower.includes('jugar')) {
             if (this.app.ui.hub.style.display !== 'none' || this.app.currentQIndex === 0) {
-                response = "🎮 Iniciando nueva ola. ¡Buena suerte! {{START_WAVE}}";
+                response = "🎮 Iniciando nueva oleada. ¡Buena suerte! {{START_WAVE}}";
                 this.achievementSystem.unlock("iniciador");
             } else {
-                response = "⏳ Ya estás en una partida. Termina esta ola primero.";
+                response = "⏳ Ya estás en una partida. Termina esta oleada primero.";
             }
         }
 
@@ -350,25 +350,25 @@ class ChatbotSystem {
         }
 
         // 5. INFORMACIÓN Y ESTADO
-        else if (lower.includes('hola') || lower.includes('hi') || lower.includes('hey') || lower.includes('buenas')) {
-            response = `¡Hola! Ola ${this.app.waveCount} - ${this.app.state.score} créditos. ¿Listo para la trivia?`;
+        else if (lower.includes('hola') || lower.includes('hi') || lower.includes('hey') || lower.includes('buenas') || lower.includes('saludos') || lower.includes('que tal')) {
+            response = `¡Hola Usuario! Te encuentras en la oleada ${this.app.waveCount} y tienes ${this.app.state.score} créditos. ¿Listo para la trivia?`;
             this.achievementSystem.unlock("saludador");
         }
-        else if (lower.includes('estado') || lower.includes('score') || lower.includes('créditos') || lower.includes('stats')) {
+        else if (lower.includes('estado') || lower.includes('score') || lower.includes('créditos') || lower.includes('stats') || lower.includes('progreso') || lower.includes('información')) {
             response = `📊 Ola: ${this.app.waveCount} | Créditos: ${this.app.state.score} | Pistas: ${this.app.state.hints} | Congeladores: ${this.app.state.inventory.freeze}`;
         }
 
         // 6. INTERACCIÓN SOCIAL
-        else if (lower.includes('gracias') || lower.includes('thanks')) {
+        else if (lower.includes('gracias') || lower.includes('thanks') || lower.includes('muchas gracias') || lower.includes('te lo agradezco')) {
             response = "😊 ¡De nada! A seguir conquistando trivias.";
             this.achievementSystem.unlock("educado");
         }
-        else if (lower.includes('nombre') || lower.includes('cómo te llamas')) {
+        else if (lower.includes('nombre') || lower.includes('cómo te llamas') || lower.includes('quién eres') || lower.includes('tu nombre')) {
             response = "🤖 Soy Core AI, tu asistente de trivia XR. ¡Encantado!";
         }
 
         // 7. AYUDA GENERAL
-        else if (lower.includes('qué puedo hacer') || lower.includes('comandos') || lower.includes('ayuda')) {
+        else if (lower.includes('qué puedo hacer') || lower.includes('comandos') || lower.includes('ayuda') || lower.includes('help') || lower.includes('opciones') || lower.includes('qué hacer') || lower.includes('retroalimentacion')) {
             response = `🎮 COMANDOS:
 • "Iniciar juego" - Nueva ola
 • "Comprar pista" - 300 CR
@@ -381,9 +381,9 @@ class ChatbotSystem {
         // RESPUESTA POR DEFECTO
         else {
             const randomResponses = [
-                "¿Podrías reformular? Prueba: 'iniciar', 'comprar pista', o 'mi estado'.",
-                "No entendí eso. Comandos: 'iniciar juego', 'comprar items', 'usar pista'.",
-                "Estoy aquí para ayudarte con la trivia XR. Di 'ayuda' para ver opciones."
+                "¿Podrías reformular? Prueba a decir: 'iniciar', 'comprar pista', o 'mi estado'.",
+                "No entendí eso. Mis comandos clave son: 'iniciar juego', 'comprar items', 'usar pista'.",
+                "Estoy aquí para ayudarte con la trivia XR. Escribe o di 'ayuda' para ver opciones."
             ];
             response = randomResponses[Math.floor(Math.random() * randomResponses.length)];
         }
