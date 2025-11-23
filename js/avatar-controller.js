@@ -18,17 +18,14 @@
             this.actionsMap = {}; // map state -> actions array
             this.clock = new THREE.Clock();
             this.enabled = false;
+            // Note: animation updates are performed by calling update(delta) from the main loop.
+        }
 
-            // simple RAF to update mixer
-            const tick = () => {
-                const dt = this.clock.getDelta();
-                // update default mixer
-                if (this.mixer) try { this.mixer.update(dt); } catch (e) { }
-                // update per-state mixers
-                Object.values(this.mixers || {}).forEach(m => { if (m) try { m.update(dt); } catch (e) { } });
-                requestAnimationFrame(tick);
-            };
-            requestAnimationFrame(tick);
+        // Called from the main render loop (SceneManager.onTick) to update mixers
+        update(delta) {
+            if (!delta && this.clock) delta = this.clock.getDelta();
+            if (this.mixer) try { this.mixer.update(delta); } catch (e) { }
+            Object.values(this.mixers || {}).forEach(m => { if (m) try { m.update(delta); } catch (e) { } });
         }
 
         // Normalize model: compute bounding box, scale to desiredHeight (meters) and center on origin
@@ -88,6 +85,9 @@
                             // create mixer for the inner model (not the wrapper group)
                             this.mixer = new THREE.AnimationMixer(model);
                             this.actions = gltf.animations.map(anim => this.mixer.clipAction(anim));
+                            // stop any autoplaying action
+                            this.actions.forEach(a => { try { a.stop(); } catch (e) { } });
+                            if (this.mixer) try { this.mixer.setTime(0); } catch (e) { }
                         }
 
                         this.enabled = true;
@@ -126,6 +126,9 @@
                         if (gltf.animations && gltf.animations.length > 0) {
                             const mixer = new THREE.AnimationMixer(model);
                             const actions = gltf.animations.map(anim => mixer.clipAction(anim));
+                            // ensure actions are stopped by default (no autoplay)
+                            actions.forEach(a => { try { a.stop(); } catch (e) { } });
+                            mixer.setTime(0);
                             this.mixers[stateName] = mixer;
                             this.actionsMap[stateName] = actions;
                         } else {
@@ -155,13 +158,20 @@
             if (actions && actions.length > 0 && mixer) {
                 // stop all actions for that state, then play first
                 actions.forEach(a => { try { a.stop(); } catch (e) { } });
-                actions[0].reset();
-                actions[0].play();
+                const action = actions[0];
+                try {
+                    action.reset();
+                    action.setEffectiveTimeScale(1);
+                    if (typeof action.setEffectiveWeight === 'function') action.setEffectiveWeight(1);
+                    action.play();
+                } catch (e) {
+                    try { action.play(); } catch (ee) { }
+                }
                 // return a promise that resolves when the clip finishes
-                const durationMs = (actions[0]._clip && actions[0]._clip.duration ? actions[0]._clip.duration : 2) * 1000 + 200;
+                const durationMs = (action._clip && action._clip.duration ? action._clip.duration : 2) * 1000 + 200;
                 return new Promise((resolve) => {
                     setTimeout(() => {
-                        try { actions[0].stop(); } catch (e) { }
+                        try { action.stop(); } catch (e) { }
                         resolve(durationMs);
                     }, durationMs);
                 });
@@ -194,8 +204,14 @@
                 // crossfade from currently running
                 this.actions.forEach(a => { try { a.stop(); } catch (e) { } });
                 const action = this.actions[idx];
-                action.reset();
-                action.play();
+                try {
+                    action.reset();
+                    action.setEffectiveTimeScale(1);
+                    if (typeof action.setEffectiveWeight === 'function') action.setEffectiveWeight(1);
+                    action.play();
+                } catch (e) {
+                    try { action.play(); } catch (ee) { }
+                }
                 const durationMs = (action._clip && action._clip.duration ? action._clip.duration : 2) * 1000 + 200;
                 return new Promise((resolve) => {
                     setTimeout(() => { try { action.stop(); } catch (e) { }; resolve(durationMs); }, durationMs);

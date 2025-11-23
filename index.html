@@ -229,6 +229,8 @@
                 <i class="fas fa-smile text-yellow-400 text-4xl mb-4 animate-bounce"></i>
                 <p class="text-white font-bold mb-2">¡Sonríe a la cámara!</p>
                 <p class="text-xs text-gray-400">Detectando gesto facial...</p>
+                <button id="btn-cancel-hint" class="mt-4 bg-red-600 px-3 py-2 rounded text-sm text-white">Cancelar
+                    Escaneo</button>
             </div>
 
             <h2 id="q-category" class="text-xs uppercase tracking-widest text-blue-400 mb-2">Ciencia</h2>
@@ -546,17 +548,21 @@
                     // Configuración: indica aquí los GLB locales que has subido en `assets/`.
                     // Cada archivo puede contener su propio modelo + animaciones.
                     // Ejemplo: { neutral: 'assets/avatar_base.glb', incorrect: 'assets/avatar_anim.glb', correct: 'assets/avatar_correct.glb' }
+                    // Per-state avatar entries can be a string (src) or an object { src, desiredHeight, normalize }
                     const AVATAR_STATE_FILES = {
-                        neutral: 'assets/avatar_base.glb',
-                        incorrect: 'assets/Victory_duo.glb',
-                        correct: 'assets/avatar_correct.glb'
+                        neutral: { src: 'assets/idle_duo.glb', desiredHeight: 0.010 },
+                        correct: { src: 'assets/Victory_duo.glb', desiredHeight: 0.010 },
+                        incorrect: { src: 'assets/Defeated_duo.glb', desiredHeight: 0.010 }
                     };
 
                     this.avatarController = new AvatarController(this.scene.scene, { scale: 1.5, states: AVATAR_STATE_FILES });
 
                     // Cargar solo el estado neutral al inicio y mostrarlo automáticamente.
                     if (AVATAR_STATE_FILES.neutral) {
-                        this.avatarController.loadState('neutral', AVATAR_STATE_FILES.neutral).then(info => {
+                        const entry = AVATAR_STATE_FILES.neutral;
+                        const src = (typeof entry === 'string') ? entry : entry.src;
+                        const opts = (typeof entry === 'object') ? { desiredHeight: entry.desiredHeight, normalize: entry.normalize } : {};
+                        this.avatarController.loadState('neutral', src, opts).then(info => {
                             // mostrar neutral (sin reproducir animación obligatoria)
                             if (this.avatarController.models['neutral']) this.avatarController.models['neutral'].visible = true;
                             this.addChat('AI', `Avatar neutral cargado (${info.animations.length} anim).`);
@@ -572,14 +578,19 @@
                     if (window.ModelViewerManager) {
                         try {
                             modelViewerManager = new ModelViewerManager({ container: document.getElementById('canvas-container') });
-                            // Load neutral into model-viewer if provided
+                            // Load neutral into model-viewer if provided (supports object or string entries)
                             if (AVATAR_STATE_FILES.neutral) {
-                                modelViewerManager.loadState('neutral', AVATAR_STATE_FILES.neutral).then(() => {
+                                const entry = AVATAR_STATE_FILES.neutral;
+                                const src = (typeof entry === 'string') ? entry : entry.src;
+                                modelViewerManager.loadState('neutral', src).then(() => {
                                     this.addChat('AI', 'Model-viewer neutral cargado.');
                                 }).catch(err => console.warn('No se pudo cargar model-viewer neutral:', err));
                             }
                         } catch (e) { console.warn('ModelViewerManager init failed', e); }
                     }
+
+                    // Audio manager (tones). Can be replaced with mapping: new AudioManager({ correct: 'assets/correct.wav' })
+                    try { this.audio = new AudioManager(); } catch (e) { console.warn('AudioManager init failed', e); }
 
                     // Helper: carga y reproduce un estado (por ejemplo 'correct' o 'incorrect').
                     this.playAvatarState = async (stateName) => {
@@ -592,7 +603,10 @@
                                     return;
                                 } else if (AVATAR_STATE_FILES && AVATAR_STATE_FILES[stateName]) {
                                     try {
-                                        await modelViewerManager.loadState(stateName, AVATAR_STATE_FILES[stateName]);
+                                        const entry = AVATAR_STATE_FILES[stateName];
+                                        const src = (typeof entry === 'string') ? entry : entry.src;
+                                        const mvOpts = (typeof entry === 'object') ? { desiredHeight: entry.desiredHeight, normalize: entry.normalize } : {};
+                                        await modelViewerManager.loadState(stateName, src, mvOpts);
                                         await modelViewerManager.playState(stateName);
                                         return;
                                     } catch (e) {
@@ -604,12 +618,16 @@
                             // Fallback to AvatarController if present
                             if (this.avatarController) {
                                 const urls = (this.avatarController.opts && this.avatarController.opts.states) || {};
+                                // support object entries with src/options
+                                const entry = urls[stateName] || (AVATAR_STATE_FILES && AVATAR_STATE_FILES[stateName]);
                                 if (this.avatarController.models[stateName]) {
                                     await this.avatarController.playState(stateName);
                                     return;
-                                } else if (urls[stateName]) {
+                                } else if (entry) {
+                                    const src = (typeof entry === 'string') ? entry : entry.src;
+                                    const loadOpts = (typeof entry === 'object') ? { desiredHeight: entry.desiredHeight, normalize: entry.normalize } : {};
                                     try {
-                                        await this.avatarController.loadState(stateName, urls[stateName]);
+                                        await this.avatarController.loadState(stateName, src, loadOpts);
                                         await this.avatarController.playState(stateName);
                                         return;
                                     } catch (e) { console.warn('Error cargando estado', stateName, e); }
@@ -748,7 +766,7 @@
                     const btn = document.createElement('button');
                     btn.className = "bg-blue-900/50 hover:bg-blue-600 border border-blue-500/30 text-white p-3 rounded transition answer-btn";
                     btn.textContent = opt;
-                    btn.onclick = () => this.answer(i);
+                    btn.onclick = () => { if (this.audio) this.audio.play('click'); this.answer(i); };
                     this.ui.answers.appendChild(btn);
                 });
 
@@ -795,14 +813,17 @@
                 if (index === -1) {
                     msg = "Tiempo agotado.";
                     try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
+                    if (this.audio) this.audio.play('incorrect');
                 } else if (index === this.currentQ.a) {
                     msg = "Correcto. +100 CR";
                     this.state.update('score', 100);
                     this.state.stats.correctAnswersInWave++;
                     try { if (this.playAvatarState) this.playAvatarState('correct'); else this.avatarController && this.avatarController.playCorrect(); } catch (e) { }
+                    if (this.audio) { this.audio.play('correct'); setTimeout(() => { this.audio.play('points'); }, 120); }
                 } else {
                     msg = `Incorrecto. Era: ${this.currentQ.o[this.currentQ.a]}`;
                     try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
+                    if (this.audio) this.audio.play('incorrect');
                 }
                 this.addChat("AI", msg);
 
@@ -867,19 +888,32 @@
             // --- UTILS ---
             bindEvents() {
                 document.getElementById('btn-camera').onclick = () => {
+                    if (this.audio) this.audio.play('click');
                     this.vision.start().then(ok => {
                         if (ok) this.addChat("AI", "Cámara activa.");
                     });
                 };
 
                 // Eventos In-Game
-                document.getElementById('btn-use-hint').onclick = () => this.activateHintLogic();
-                document.getElementById('btn-freeze').onclick = () => this.freezeTime();
+                document.getElementById('btn-use-hint').onclick = () => { if (this.audio) this.audio.play('click'); this.activateHintLogic(); };
+                document.getElementById('btn-freeze').onclick = () => { if (this.audio) this.audio.play('click'); this.freezeTime(); };
+
+                // Cancel hint scan button
+                const btnCancelHint = document.getElementById('btn-cancel-hint');
+                if (btnCancelHint) btnCancelHint.onclick = () => {
+                    if (!this.isHintActive) return;
+                    this.isHintActive = false;
+                    this.vision.setMode('HANDS');
+                    this.ui.hintOverlay.classList.add('hidden');
+                    if (this.audio) this.audio.play('cancel');
+                    this.addChat('AI', 'Escaneo cancelado.');
+                };
 
                 // Eventos Hub
-                document.getElementById('btn-next-wave').onclick = () => this.startWave();
+                document.getElementById('btn-next-wave').onclick = () => { if (this.audio) this.audio.play('click'); this.startWave(); };
 
                 document.getElementById('shop-hint').onclick = () => {
+                    if (this.audio) this.audio.play('click');
                     if (this.state.buyItem('hints', 300)) {
                         this.addChat("AI", "Pistas recargadas.");
                         this.scene.spawnItem('hints');
@@ -888,6 +922,7 @@
                 };
 
                 document.getElementById('shop-freeze').onclick = () => {
+                    if (this.audio) this.audio.play('click');
                     if (this.state.buyItem('freeze', 500)) {
                         this.addChat("AI", "Congelador adquirido.");
                         this.scene.spawnItem('freeze');
@@ -924,6 +959,7 @@
     <script src="js/webxr-manager.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <script src="js/modelviewer-manager.js"></script>
+    <script src="js/audio-manager.js"></script>
     <script src="js/chatbot.js"></script>
     <script src="js/glb-loader.js"></script>
     <script src="js/avatar-controller.js"></script>
