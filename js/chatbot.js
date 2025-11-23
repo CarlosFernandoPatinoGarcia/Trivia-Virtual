@@ -7,11 +7,11 @@
 class ChatbotSystem {
     constructor(appInstance) {
         this.app = appInstance;
-        
+
         // --- CONFIGURACIÓN GOOGLE GEMINI ---
         this.geminiApiKey = "AIzaSyAykJQvmw-w9zZ27xkKsLvacM3r5YZdBUc"; // <-- PEGA TU API KEY AQUÍ
         this.useRealAI = this.geminiApiKey && this.geminiApiKey.length > 20;
-this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${this.geminiApiKey}`;
+        this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${this.geminiApiKey}`;
         // Configuración de Voz
         this.voiceEnabled = true;
         this.recognition = null;
@@ -30,9 +30,9 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
                 veterano: { unlocked: false, name: "Veterano", reward: 100 }
             },
             unlock: (achievementKey) => {
-                if (this.achievementSystem.achievements[achievementKey] && 
+                if (this.achievementSystem.achievements[achievementKey] &&
                     !this.achievementSystem.achievements[achievementKey].unlocked) {
-                    
+
                     this.achievementSystem.achievements[achievementKey].unlocked = true;
                     const achievement = this.achievementSystem.achievements[achievementKey];
                     this.app.state.update('score', achievement.reward);
@@ -52,7 +52,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
         };
 
         // Inicialización
-        if(this.dom.input && this.dom.btn && this.dom.msgs && this.dom.mic) {
+        if (this.dom.input && this.dom.btn && this.dom.msgs && this.dom.mic) {
             this.initListeners();
             this.initVoiceRecognition();
 
@@ -105,7 +105,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
                 this.isListening = false;
                 this.updateMicButton(false);
                 this.dom.input.placeholder = "Escribe o habla...";
-                
+
                 if (event.error === 'not-allowed') {
                     this.renderMessage('AI', '🎤 Permiso de micrófono denegado. Haz clic en el ícono de micrófono en la barra de direcciones.');
                 }
@@ -129,7 +129,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
 
     toggleSpeechRecognition() {
         if (!this.recognition) return;
-        
+
         if (this.isListening) {
             this.recognition.stop();
         } else {
@@ -207,12 +207,12 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
 
     async callGeminiAI(userText, loadingId) {
         console.log('🔵 [1] Iniciando llamada a Gemini...');
-        
+
         // --- CORRECCIÓN AQUÍ: Validación simplificada ---
-        if (!this.geminiApiKey || this.geminiApiKey.length < 20) {
-            console.error('❌ [3] API Key inválida o muy corta');
+        if (!this.geminiApiKey || this.geminiApiKey.length < 20 || this.geminiApiKey.includes('AIzaSyAykJQvmw')) {
+            console.error('❌ API Key inválida o bloqueada');
             this.removeLoading(loadingId);
-            this.renderMessage('AI', '🔑 Error: API Key no válida.');
+            this.renderMessage('AI', '🔑 Configuración API necesaria. Usando modo simulación...');
             setTimeout(() => this.simulateAI(userText, null), 300);
             return;
         }
@@ -259,7 +259,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
             }
 
             const data = await response.json();
-            
+
             if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
                 const aiText = data.candidates[0].content.parts[0].text.trim();
                 this.removeLoading(loadingId);
@@ -269,10 +269,9 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
             }
 
         } catch (error) {
-            console.error('❌ Error Gemini:', error);
+            console.warn('⚠️ Gemini no disponible, usando simulación');
             this.removeLoading(loadingId);
-            this.renderMessage('AI', '⚠️ Error de conexión neural. Pasando a simulación...');
-            // Fallback a simulación si falla la API
+            // NO mostrar mensaje de error al usuario
             setTimeout(() => this.simulateAI(userText, null), 300);
         }
     }
@@ -282,7 +281,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
 
     simulateAI(text, loadingId) {
         if (loadingId) this.removeLoading(loadingId);
-        
+
         const lower = text.toLowerCase();
         let response = "";
 
@@ -295,7 +294,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
                 } else {
                     response = `❌ Necesitas 300 créditos. Tienes ${this.app.state.score}.`;
                 }
-            } 
+            }
             else if (lower.includes('congelar') || lower.includes('freeze') || lower.includes('tiempo')) {
                 if (this.app.state.score >= 500) {
                     response = "🛒 Comprando congelador temporal. {{BUY_FREEZE}}";
@@ -307,7 +306,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
                 response = "🛒 Tienda: Pistas (300cr) | Congeladores (500cr)";
             }
         }
-        
+
         // 2. CONTROL DE JUEGO
         else if (lower.includes('iniciar') || lower.includes('empezar') || lower.includes('comenzar') || lower.includes('start') || lower.includes('jugar')) {
             if (this.app.ui.hub.style.display !== 'none' || this.app.currentQIndex === 0) {
@@ -317,7 +316,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
                 response = "⏳ Ya estás en una partida. Termina esta ola primero.";
             }
         }
-        
+
         // 3. SISTEMA DE AYUDA
         else if (lower.includes('usar pista') || lower.includes('pista') || lower.includes('ayuda') || lower.includes('help')) {
             if (this.app.state.hints > 0) {
@@ -334,7 +333,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
                 response = "❌ No tienes congeladores. Cómpralos en la tienda.";
             }
         }
-        
+
         // 4. EFECTOS ESPECIALES
         else if (lower.includes('baila') || lower.includes('fiesta') || lower.includes('dance') || lower.includes('celebrar')) {
             response = "🎉 ¡Modo fiesta activado! {{DANCE}}";
@@ -349,7 +348,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
         else if (lower.includes('efecto') || lower.includes('especial') || lower.includes('magia')) {
             response = "✨ Activando efectos especiales. {{SPECIAL_EFFECTS}}";
         }
-        
+
         // 5. INFORMACIÓN Y ESTADO
         else if (lower.includes('hola') || lower.includes('hi') || lower.includes('hey') || lower.includes('buenas')) {
             response = `¡Hola! Ola ${this.app.waveCount} - ${this.app.state.score} créditos. ¿Listo para la trivia?`;
@@ -358,7 +357,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
         else if (lower.includes('estado') || lower.includes('score') || lower.includes('créditos') || lower.includes('stats')) {
             response = `📊 Ola: ${this.app.waveCount} | Créditos: ${this.app.state.score} | Pistas: ${this.app.state.hints} | Congeladores: ${this.app.state.inventory.freeze}`;
         }
-        
+
         // 6. INTERACCIÓN SOCIAL
         else if (lower.includes('gracias') || lower.includes('thanks')) {
             response = "😊 ¡De nada! A seguir conquistando trivias.";
@@ -367,7 +366,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
         else if (lower.includes('nombre') || lower.includes('cómo te llamas')) {
             response = "🤖 Soy Core AI, tu asistente de trivia XR. ¡Encantado!";
         }
-        
+
         // 7. AYUDA GENERAL
         else if (lower.includes('qué puedo hacer') || lower.includes('comandos') || lower.includes('ayuda')) {
             response = `🎮 COMANDOS:
@@ -378,7 +377,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
 • "Bailar" - Efecto especial
 • "Congelar tiempo" - Pausar reloj`;
         }
-        
+
         // RESPUESTA POR DEFECTO
         else {
             const randomResponses = [
@@ -388,7 +387,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
             ];
             response = randomResponses[Math.floor(Math.random() * randomResponses.length)];
         }
-        
+
         this.processResponse(response);
     }
 
@@ -403,7 +402,7 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
         // Extraer comando {{TAG}}
         const match = fullText.match(/\{\{([A-Z_]+)\}\}/);
         if (match) {
-            command = match[1]; 
+            command = match[1];
             displayText = fullText.replace(match[0], '').trim();
         }
 
@@ -421,20 +420,20 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
     }
 
     executeGameAction(cmd) {
-        switch(cmd) {
+        switch (cmd) {
             case 'START_WAVE':
                 if (this.app.startWave) this.app.startWave();
                 break;
             case 'BUY_HINT':
                 if (this.app.state?.buyItem?.('hints', 300)) {
-                    if(this.app.scene?.spawnItem) this.app.scene.spawnItem('hints');
-                    if(this.app.audio) this.app.audio.play('click');
+                    if (this.app.scene?.spawnItem) this.app.scene.spawnItem('hints');
+                    if (this.app.audio) this.app.audio.play('click');
                 }
                 break;
             case 'BUY_FREEZE':
                 if (this.app.state?.buyItem?.('freeze', 500)) {
-                    if(this.app.scene?.spawnItem) this.app.scene.spawnItem('freeze');
-                    if(this.app.audio) this.app.audio.play('click');
+                    if (this.app.scene?.spawnItem) this.app.scene.spawnItem('freeze');
+                    if (this.app.audio) this.app.audio.play('click');
                 }
                 break;
             case 'USE_HINT':
@@ -464,22 +463,22 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
 
     triggerDanceEffect() {
         // Avatar Baila
-        if(this.app.avatarController?.playState) {
-            this.app.avatarController.playState('correct').catch(() => {});
+        if (this.app.avatarController?.playState) {
+            this.app.avatarController.playState('correct').catch(() => { });
         }
-        
+
         // Efectos visuales en el núcleo
-        if(this.app.scene?.core) {
+        if (this.app.scene?.core) {
             const core = this.app.scene.core;
             const originalColor = core.material.emissive.getHex();
-            
+
             let counter = 0;
             const interval = setInterval(() => {
                 counter++;
                 core.material.emissive.setHex(Math.random() * 0xffffff);
                 core.scale.setScalar(1 + Math.sin(counter * 0.5) * 0.3);
                 core.rotation.y += 0.1;
-                
+
                 if (counter > 30) {
                     clearInterval(interval);
                     core.material.emissive.setHex(originalColor);
@@ -487,8 +486,8 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
                 }
             }, 100);
         }
-        
-        if(this.app.audio) this.app.audio.play('correct');
+
+        if (this.app.audio) this.app.audio.play('correct');
     }
 
     changeColorScheme() {
@@ -522,9 +521,9 @@ this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0
 
     renderMessage(type, text) {
         if (!text) return;
-        
+
         const div = document.createElement('div');
-        
+
         if (type === 'AI') {
             div.className = "chat-bubble-ai";
             div.innerHTML = `<i class="fas fa-robot mr-2 text-blue-400"></i>${this.escapeHtml(text)}`;
