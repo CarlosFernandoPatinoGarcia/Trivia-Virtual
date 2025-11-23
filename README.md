@@ -69,7 +69,7 @@ Cómo usar lo nuevo
 ------------------
 
 - Para pruebas rápidas sin servicios externos, la app ahora puede usar el `ChatbotClient` en modo local (fallback). No requiere cambios en `index.html` para funcionar.
-- Para usar GLB (avatar + animación): coloca tus archivos `avatar_base.glb` y `avatar_anim.glb` dentro de `assets/`. El helper `GLBLoaderHelper.loadAvatarAssets()` buscará esos nombres por convención.
+-- Para usar GLB (avatar + animación): coloca tus archivos `avatar_base.glb` y `avatar_anim.glb` dentro de `assets/3Dmodels/`. El helper `GLBLoaderHelper.loadAvatarAssets()` ahora busca por defecto en `assets/3Dmodels/`, o puedes pasar otra ruta a la función.
 
 Pruebas y ejemplo de avatar
 ---------------------------

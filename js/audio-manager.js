@@ -59,6 +59,15 @@
                 case 'correct': this._playChime(); break;
                 case 'incorrect': this._playTone(200, 'sawtooth', 0.12, 0.18); break;
                 case 'points': this._playTone(1400, 'triangle', 0.08, 0.06); break;
+                // Quick tick used for countdown when time is low
+                case 'time_tick': this._playTone(1200, 'sine', 0.04, 0.05); break;
+                // More urgent pattern for the last seconds
+                case 'time_last':
+                    this._playTone(1200, 'square', 0.06, 0.08, 0);
+                    this._playTone(1600, 'square', 0.04, 0.06, 0.06);
+                    break;
+                // General warning (fallback tone if no external file provided)
+                case 'time_warning': this._playTone(800, 'sawtooth', 0.08, 0.09); break;
                 case 'cancel': this._playTone(400, 'sine', 0.06, 0.06); break;
                 default: this._playTone(800, 'sine', 0.04, 0.04); break;
             }

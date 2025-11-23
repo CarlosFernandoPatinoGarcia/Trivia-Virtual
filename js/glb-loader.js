@@ -11,12 +11,30 @@
         });
     }
 
-    async function loadAvatarAssets(basePath = 'assets') {
+    async function loadAvatarAssets(basePath = 'assets/3Dmodels') {
+        // Por compatibilidad, permitimos pasar 'assets' u otra ruta.
+        // Por defecto asumimos que los GLB se encuentran en `assets/3Dmodels`.
         const baseUrl = `${basePath}/avatar_base.glb`;
-        const animUrl = `${basePath}/Victory-duo.glb`;
+        const candidateAnims = ['Victory_duo.glb', 'Victory-duo.glb', 'avatar_anim.glb', 'avatar_correct.glb', 'duo_incorrect.glb'];
         const result = { base: null, anim: null, mixer: null };
+
+        async function tryLoadAny(names) {
+            for (const n of names) {
+                try {
+                    const g = await loadGLTF(`${basePath}/${n}`).catch(e => null);
+                    if (g) return g;
+                } catch (e) { /* ignore and try next */ }
+            }
+            return null;
+        }
+
         try {
-            const [gBase, gAnim] = await Promise.all([loadGLTF(baseUrl).catch(e => null), loadGLTF(animUrl).catch(e => null)]);
+            const gBase = await loadGLTF(baseUrl).catch(e => null);
+            let gAnim = null;
+
+            // Intentar cargar alguna animación candidata en orden
+            gAnim = await tryLoadAny(candidateAnims);
+
             if (gBase) result.base = gBase.scene || gBase.scenes[0];
             if (gAnim) {
                 result.anim = gAnim.animations || [];
