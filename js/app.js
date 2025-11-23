@@ -149,6 +149,11 @@ class SceneManager {
         this.itemsGroup = new THREE.Group();
         this.scene.add(this.itemsGroup);
 
+        // Audio-reactive analyser (can be attached later)
+        this.audioAnalyser = null;
+        this.analyserData = null;
+        this._audioVisualSmooth = 0.0;
+
         this.initWorld();
         this.animate();
         window.addEventListener('resize', () => {
@@ -175,6 +180,18 @@ class SceneManager {
         this.scene.add(this.core);
     }
 
+    // Attach an AnalyserNode to make visuals react to audio
+    setAudioAnalyser(analyser) {
+        try {
+            this.audioAnalyser = analyser;
+            this.analyserData = new Uint8Array(analyser.frequencyBinCount);
+        } catch (e) {
+            console.warn('Failed to set audio analyser', e);
+            this.audioAnalyser = null;
+            this.analyserData = null;
+        }
+    }
+
     spawnItem(type) {
         // Genera item visual en el "Hub" (alrededor del núcleo)
         const geo = type === 'hints' ? new THREE.ConeGeometry(0.3, 0.6, 8) : new THREE.BoxGeometry(0.4, 0.4, 0.4);
@@ -193,8 +210,34 @@ class SceneManager {
         // Use Three.js XR-friendly loop. External systems can subscribe via onTick(delta).
         this.renderer.setAnimationLoop(() => {
             const delta = this.clock.getDelta();
-            this.core.rotation.y += 0.005;
-            this.core.rotation.x += 0.002;
+            // Audio-reactive visual: read analyser and modulate core scale/emissive
+            if (this.audioAnalyser && this.analyserData) {
+                try {
+                    this.audioAnalyser.getByteFrequencyData(this.analyserData);
+                    // Compute average energy
+                    let sum = 0;
+                    for (let i = 0; i < this.analyserData.length; i++) sum += this.analyserData[i];
+                    const avg = sum / this.analyserData.length; // 0-255
+                    const norm = avg / 255; // 0-1
+                    // smooth the value
+                    this._audioVisualSmooth = this._audioVisualSmooth * 0.85 + norm * 0.15;
+                    const scale = 1 + this._audioVisualSmooth * 2.99; // scale range 1 - 3
+                    this.core.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.6);
+                    // emissive color lerp between dark and bright
+                    if (this.core.material && this.core.material.emissive) {
+                        const base = new THREE.Color(0x001133);
+                        const bright = new THREE.Color(0x00d2ff);
+                        this.core.material.emissive.lerpColors(base, bright, this._audioVisualSmooth);
+                    }
+                } catch (e) {
+                    // If analyser reading fails, fallback to gentle idle rotation
+                    this.core.rotation.y += 0.005;
+                    this.core.rotation.x += 0.002;
+                }
+            } else {
+                this.core.rotation.y += 0.005;
+                this.core.rotation.x += 0.002;
+            }
 
             // Rotar items comprados
             this.itemsGroup.children.forEach(item => {
@@ -290,7 +333,7 @@ class App {
                 // No pasamos SFX en el mapping: se usarán los tonos internos de AudioManager.
                 // Solo indicamos la ruta de la música de fondo si quieres usar un MP3.
                 const AUDIO_MAP = {
-                    background: 'assets/audio/music_bg.mp3'
+                    background: 'assets/audio/background-futurista.mp3'
                 };
 
                 this.audio = new AudioManager(AUDIO_MAP);
@@ -300,14 +343,62 @@ class App {
                     try {
                         this._bgMusic = new Audio(this.audio.mapping.background);
                         this._bgMusic.loop = true;
-                        this._bgMusic.volume = 0.22;
-
-                        // Intento de reproducción tras primer gesto del usuario (por políticas de autoplay)
+                        this._bgMusic.volume = 0.05;
+                        this._bgMusic.play().catch(e => console.warn('Could not init background music', e));
+                        // Intento de reproducción: tratar de iniciar inmediatamente al cargar la página.
+                        // Si autoplay está bloqueado, mantenemos el fallback por interacción de usuario.
                         const tryPlayBg = async () => {
-                            try { await this._bgMusic.play(); } catch (e) { /* autoplay bloqueado, se reproducirá tras interacción */ }
-                            document.removeEventListener('click', tryPlayBg, true);
+                            try {
+                                await this._bgMusic.play();
+                                // Si se pudo reproducir, removemos el listener de clic (no hace falta fallback)
+                                document.removeEventListener('click', tryPlayBg, true);
+                                console.log('Background music started automatically');
+                            } catch (e) {
+                                // Autoplay bloqueado por políticas del navegador. Dejamos el fallback por click.
+                                console.warn('Autoplay blocked for background music, will play on user interaction.');
+                            }
                         };
+
+                        // Intento inmediato
+                        tryPlayBg();
+                        // Fallback por si no se pudo reproducir: iniciar en el primer clic del usuario
                         document.addEventListener('click', tryPlayBg, { once: true, capture: true });
+                        // Create WebAudio context and analyser, connect the element source
+                        try {
+                            const AudioContext = window.AudioContext || window.webkitAudioContext;
+                            this.audioCtx = new AudioContext();
+                            // createMediaElementSource must be called once per element
+                            try {
+                                this._bgSource = this.audioCtx.createMediaElementSource(this._bgMusic);
+                                this._analyser = this.audioCtx.createAnalyser();
+                                this._analyser.fftSize = 256;
+                                this._bgSource.connect(this._analyser);
+                                this._analyser.connect(this.audioCtx.destination);
+                                if (this.scene && typeof this.scene.setAudioAnalyser === 'function') {
+                                    this.scene.setAudioAnalyser(this._analyser);
+                                }
+                            } catch (e) {
+                                console.warn('Could not create media element source for background music', e);
+                            }
+
+                            // Some browsers require a user gesture to resume the AudioContext
+                            if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                                const resumeCtx = () => {
+                                    this.audioCtx.resume().catch(() => { }).finally(() => {
+                                        document.removeEventListener('click', resumeCtx, true);
+                                    });
+                                };
+                                document.addEventListener('click', resumeCtx, { once: true, capture: true });
+                            }
+                        } catch (e) {
+                            console.warn('AudioContext setup failed', e);
+                        }
+                        // Intento de reproducción tras primer gesto del usuario (por políticas de autoplay)
+                        // const tryPlayBg = async () => {
+                        //     try { await this._bgMusic.play(); } catch (e) { /* autoplay bloqueado, se reproducirá tras interacción */ }
+                        //     document.removeEventListener('click', tryPlayBg, true);
+                        // };
+                        // document.addEventListener('click', tryPlayBg, { once: true, capture: true });
                     } catch (e) { console.warn('Could not init background music', e); }
                 }
             } catch (e) { console.warn('AudioManager init failed', e); }
