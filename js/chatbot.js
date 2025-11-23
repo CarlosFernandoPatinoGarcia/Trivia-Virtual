@@ -9,10 +9,9 @@ class ChatbotSystem {
         this.app = appInstance;
         
         // --- CONFIGURACIÓN GOOGLE GEMINI ---
-        this.geminiApiKey = "AIzaSyDpKEzTVuXdBk2DYzKziHzRHbV-haaZWSw"; // <-- PEGA TU API KEY AQUÍ
+        this.geminiApiKey = "AIzaSyAykJQvmw-w9zZ27xkKsLvacM3r5YZdBUc"; // <-- PEGA TU API KEY AQUÍ
         this.useRealAI = this.geminiApiKey && this.geminiApiKey.length > 20;
-        this.geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`;
-
+this.geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${this.geminiApiKey}`;
         // Configuración de Voz
         this.voiceEnabled = true;
         this.recognition = null;
@@ -207,97 +206,76 @@ class ChatbotSystem {
     // ==========================================
 
     async callGeminiAI(userText, loadingId) {
-    // Validar API key
-    if (!this.geminiApiKey || this.geminiApiKey.includes("AIzaSyDpKEzTVuXdBk2DYzKziHzRHbV-haaZWSw")) {
-        this.removeLoading(loadingId);
-        this.renderMessage('AI', '🔑 Configura tu API Key de Google AI Studio en chatbot.js');
-        setTimeout(() => this.simulateAI(userText, null), 300);
-        return;
-    }
-
-    const gameContext = `
-ERES "Core AI", el asistente inteligente de TRIVIA XR. 
-Responde en ESPAÑOL de forma BREVE y ÚTIL.
-
---- CONTEXTO DEL JUEGO ---
-Créditos: ${this.app.state.score}
-Pistas: ${this.app.state.hints}  
-Ola actual: ${this.app.waveCount}
-Congeladores: ${this.app.state.inventory.freeze}
-
---- FORMATO DE RESPUESTA OBLIGATORIO ---
-SI el usuario solicita una ACCIÓN del juego, DEBES incluir EXACTAMENTE UNO de estos comandos al FINAL de tu respuesta:
-
-{{START_WAVE}} - Si pide iniciar/empezar/comenzar juego
-{{BUY_HINT}} - Si pide comprar pistas/sugerencias/ayudas
-{{BUY_FREEZE}} - Si pide comprar congelador/tiempo/pausa
-{{USE_HINT}} - Si pide usar pista/ayuda/sugerencia
-{{USE_FREEZE}} - Si pide usar congelador/parar tiempo
-{{DANCE}} - Si pide bailar/fiesta/celebrar/efecto
-{{CHANGE_COLORS}} - Si pide cambiar colores/luces
-{{TOGGLE_MUSIC}} - Si pide música/sonido/audio
-{{SPECIAL_EFFECTS}} - Si pide efectos especiales/magia
-
---- EJEMPLOS CORRECTOS ---
-Usuario: "quiero jugar" → Tú: "¡Perfecto! Iniciando nueva ola. {{START_WAVE}}"
-Usuario: "comprar pistas" → Tú: "Comprando pack de pistas. {{BUY_HINT}}"
-Usuario: "usar una pista" → Tú: "Activando modo pista. {{USE_HINT}}"
-Usuario: "hola" → Tú: "¡Hola! ¿Listo para la trivia?"
-Usuario: "bailar" → Tú: "¡Modo baile activado! {{DANCE}}"
-
---- REGLAS IMPORTANTES ---
-1. SOLO usa comandos {{...}} para ACCIONES del juego
-2. Responde de forma natural y conversacional
-3. Sé breve (máximo 2 frases)
-4. Siempre en español
-
-Ahora responde al usuario:
-
-Usuario: "${userText}"
-IA:`;
-
-    try {
-        const response = await fetch(this.geminiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: gameContext
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 120,
-                    topP: 0.8,
-                }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-
-        const data = await response.json();
+        console.log('🔵 [1] Iniciando llamada a Gemini...');
         
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            const aiText = data.candidates[0].content.parts[0].text.trim();
+        // --- CORRECCIÓN AQUÍ: Validación simplificada ---
+        if (!this.geminiApiKey || this.geminiApiKey.length < 20) {
+            console.error('❌ [3] API Key inválida o muy corta');
             this.removeLoading(loadingId);
-            this.processResponse(aiText);
-        } else {
-            throw new Error('Respuesta vacía de Gemini');
+            this.renderMessage('AI', '🔑 Error: API Key no válida.');
+            setTimeout(() => this.simulateAI(userText, null), 300);
+            return;
         }
 
-    } catch (error) {
-        this.removeLoading(loadingId);
-        console.warn('Error Gemini:', error);
-        this.renderMessage('AI', '🔄 Usando modo local...');
-        setTimeout(() => this.simulateAI(userText, null), 300);
-    }
-}
+        console.log('✅ [4] API Key válida detectada');
 
+        const prompt = `Eres Core AI, un asistente de juego de trivia XR futurista. Responde en español, breve y con personalidad robótica amable.
+
+        Contexto del Jugador:
+        - Créditos: ${this.app.state.score}
+        - Pistas: ${this.app.state.hints}
+        - Ola: ${this.app.waveCount}
+        
+        TUS COMANDOS (Si el usuario pide una acción, agrega el código al final):
+        {{START_WAVE}} = Iniciar juego/ola
+        {{BUY_HINT}} = Comprar pista (300cr)
+        {{BUY_FREEZE}} = Comprar congelar (500cr)
+        {{USE_HINT}} = Usar pista
+        {{USE_FREEZE}} = Congelar tiempo
+        {{DANCE}} = Bailar/Celebrar
+
+        Usuario: "${userText}"
+        Asistente:`;
+
+        try {
+            // Nota: Gemini 1.5/2.0 Flash requiere este endpoint
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.geminiApiKey}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 150,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                const aiText = data.candidates[0].content.parts[0].text.trim();
+                this.removeLoading(loadingId);
+                this.processResponse(aiText);
+            } else {
+                throw new Error('Respuesta de Gemini vacía o mal formada');
+            }
+
+        } catch (error) {
+            console.error('❌ Error Gemini:', error);
+            this.removeLoading(loadingId);
+            this.renderMessage('AI', '⚠️ Error de conexión neural. Pasando a simulación...');
+            // Fallback a simulación si falla la API
+            setTimeout(() => this.simulateAI(userText, null), 300);
+        }
+    }
     // ==========================================
     //       4. MODO SIMULACIÓN (FALLBACK)
     // ==========================================
