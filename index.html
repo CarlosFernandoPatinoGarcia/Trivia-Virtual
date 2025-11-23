@@ -24,6 +24,9 @@
     <!-- Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+    <!-- GLTFLoader (Three.js examples) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -445,7 +448,13 @@
                 this.camera.position.set(0, 1.5, 5);
                 this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
+                // XR disabled until a session is requested by the WebXR manager
+                this.renderer.xr.enabled = false;
                 this.container.appendChild(this.renderer.domElement);
+
+                // Clock for animation updates and hook for external update callbacks
+                this.clock = new THREE.Clock();
+                this.onTick = null; // external callback: function(delta)
 
                 this.itemsGroup = new THREE.Group();
                 this.scene.add(this.itemsGroup);
@@ -491,17 +500,25 @@
             }
 
             animate() {
-                requestAnimationFrame(this.animate.bind(this));
-                this.core.rotation.y += 0.005;
-                this.core.rotation.x += 0.002;
+                // Use Three.js XR-friendly loop. External systems can subscribe via onTick(delta).
+                this.renderer.setAnimationLoop(() => {
+                    const delta = this.clock.getDelta();
+                    this.core.rotation.y += 0.005;
+                    this.core.rotation.x += 0.002;
 
-                // Rotar items comprados
-                this.itemsGroup.children.forEach(item => {
-                    item.rotation.y += 0.02;
-                    item.position.y += Math.sin(Date.now() * 0.002) * 0.005;
+                    // Rotar items comprados
+                    this.itemsGroup.children.forEach(item => {
+                        item.rotation.y += 0.02;
+                        item.position.y += Math.sin(Date.now() * 0.002) * 0.005;
+                    });
+
+                    // Call external per-frame updates (e.g., avatar mixers)
+                    try {
+                        if (typeof this.onTick === 'function') this.onTick(delta);
+                    } catch (e) { console.warn('onTick error', e); }
+
+                    this.renderer.render(this.scene, this.camera);
                 });
-
-                this.renderer.render(this.scene, this.camera);
             }
         }
 
@@ -519,6 +536,123 @@
                         onSmile: () => this.unlockHint()
                     }
                 );
+
+                // Avatar controller: carga un avatar de prueba (GLB público) y permite reproducir animaciones
+                // Fuente de ejemplo: Fox (incluye animaciones). Puedes cambiar por tus GLBs en /assets.
+                this.avatarController = null;
+                // const sampleAvatarUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Fox/glTF-Binary/Fox.glb';
+
+                try {
+                    // Configuración: indica aquí los GLB locales que has subido en `assets/`.
+                    // Cada archivo puede contener su propio modelo + animaciones.
+                    // Ejemplo: { neutral: 'assets/avatar_base.glb', incorrect: 'assets/avatar_anim.glb', correct: 'assets/avatar_correct.glb' }
+                    const AVATAR_STATE_FILES = {
+                        neutral: 'assets/t-pose-duo.glb',
+                        incorrect: 'assets/t-pose-duo.glb',
+                        correct: 'assets/t-pose-duo.glb'
+                    };
+
+                    this.avatarController = new AvatarController(this.scene.scene, { scale: 1.5, states: AVATAR_STATE_FILES });
+
+                    // Cargar solo el estado neutral al inicio y mostrarlo automáticamente.
+                    if (AVATAR_STATE_FILES.neutral) {
+                        this.avatarController.loadState('neutral', AVATAR_STATE_FILES.neutral).then(info => {
+                            // mostrar neutral (sin reproducir animación obligatoria)
+                            if (this.avatarController.models['neutral']) this.avatarController.models['neutral'].visible = true;
+                            this.addChat('AI', `Avatar neutral cargado (${info.animations.length} anim).`);
+                        }).catch(err => console.warn('No se pudo cargar avatar neutral:', err));
+                    }
+
+                    // Guardar mapping de URLs en el controlador para uso bajo demanda
+                    this.avatarController.opts = this.avatarController.opts || {};
+                    this.avatarController.opts.states = AVATAR_STATE_FILES;
+
+                    // Optionally use <model-viewer> based loader if available (HTML-first, modular)
+                    let modelViewerManager = null;
+                    if (window.ModelViewerManager) {
+                        try {
+                            modelViewerManager = new ModelViewerManager({ container: document.getElementById('canvas-container') });
+                            // Load neutral into model-viewer if provided
+                            if (AVATAR_STATE_FILES.neutral) {
+                                modelViewerManager.loadState('neutral', AVATAR_STATE_FILES.neutral).then(() => {
+                                    this.addChat('AI', 'Model-viewer neutral cargado.');
+                                }).catch(err => console.warn('No se pudo cargar model-viewer neutral:', err));
+                            }
+                        } catch (e) { console.warn('ModelViewerManager init failed', e); }
+                    }
+
+                    // Helper: carga y reproduce un estado (por ejemplo 'correct' o 'incorrect').
+                    this.playAvatarState = async (stateName) => {
+                        // Prefer <model-viewer> manager when available (HTML-first)
+                        try {
+                            if (modelViewerManager) {
+                                const mvUrls = (modelViewerManager.opts && modelViewerManager.opts.states) || AVATAR_STATE_FILES || {};
+                                if (modelViewerManager.models[stateName]) {
+                                    await modelViewerManager.playState(stateName);
+                                    return;
+                                } else if (AVATAR_STATE_FILES && AVATAR_STATE_FILES[stateName]) {
+                                    try {
+                                        await modelViewerManager.loadState(stateName, AVATAR_STATE_FILES[stateName]);
+                                        await modelViewerManager.playState(stateName);
+                                        return;
+                                    } catch (e) {
+                                        console.warn('Model-viewer failed to load state', stateName, e);
+                                    }
+                                }
+                            }
+
+                            // Fallback to AvatarController if present
+                            if (this.avatarController) {
+                                const urls = (this.avatarController.opts && this.avatarController.opts.states) || {};
+                                if (this.avatarController.models[stateName]) {
+                                    await this.avatarController.playState(stateName);
+                                    return;
+                                } else if (urls[stateName]) {
+                                    try {
+                                        await this.avatarController.loadState(stateName, urls[stateName]);
+                                        await this.avatarController.playState(stateName);
+                                        return;
+                                    } catch (e) { console.warn('Error cargando estado', stateName, e); }
+                                }
+                            }
+
+                            // No assets configured: use simple fallback animations on AvatarController
+                            if (this.avatarController) {
+                                if (stateName === 'correct') await this.avatarController.playCorrect();
+                                else await this.avatarController.playIncorrect();
+                            }
+                        } catch (err) {
+                            console.warn('playAvatarState error', err);
+                        }
+
+                        // después de reproducir, volver a neutral si existe
+                        if (this.avatarController.models['neutral']) {
+                            // small delay to ensure crossfade finished
+                            setTimeout(() => {
+                                Object.keys(this.avatarController.models).forEach(k => {
+                                    this.avatarController.models[k].visible = (k === 'neutral');
+                                });
+                            }, 300);
+                        }
+                    };
+
+                    // Hook avatar update into the scene animation loop
+                    this.scene.onTick = (delta) => {
+                        try {
+                            if (this.avatarController && typeof this.avatarController.update === 'function') this.avatarController.update(delta);
+                        } catch (e) { console.warn('Avatar update error', e); }
+                    };
+
+                    // Add WebXR entry/exit button to the page (if supported)
+                    if (window.WebXRManager) {
+                        try {
+                            const xrBtn = WebXRManager.createXRButton(this.scene.renderer);
+                            document.body.appendChild(xrBtn);
+                        } catch (e) { console.warn('Error creating XR button', e); }
+                    }
+                } catch (e) {
+                    console.warn('AvatarController no disponible', e);
+                }
 
                 // Variables de Juego
                 this.questions = this.generateQuestions();
@@ -579,6 +713,19 @@
                 this.currentQIndex = 0;
                 this.ui.hub.style.display = 'none';
                 this.ui.wave.textContent = `Wave ${this.waveCount}`;
+                // Ensure neutral avatar is visible (load if needed)
+                try {
+                    const urls = (this.avatarController && this.avatarController.opts && this.avatarController.opts.states) || {};
+                    if (this.avatarController && this.avatarController.models && this.avatarController.models['neutral']) {
+                        // make sure neutral is visible
+                        Object.keys(this.avatarController.models).forEach(k => { this.avatarController.models[k].visible = (k === 'neutral'); });
+                    } else if (urls['neutral'] && this.avatarController) {
+                        this.avatarController.loadState('neutral', urls['neutral']).then(info => {
+                            if (this.avatarController.models['neutral']) this.avatarController.models['neutral'].visible = true;
+                        }).catch(e => console.warn('No se pudo cargar neutral en startWave', e));
+                    }
+                } catch (e) { console.warn(e); }
+
                 this.nextQuestion();
             }
 
@@ -647,12 +794,15 @@
                 let msg = "";
                 if (index === -1) {
                     msg = "Tiempo agotado.";
+                    try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
                 } else if (index === this.currentQ.a) {
                     msg = "Correcto. +100 CR";
                     this.state.update('score', 100);
                     this.state.stats.correctAnswersInWave++;
+                    try { if (this.playAvatarState) this.playAvatarState('correct'); else this.avatarController && this.avatarController.playCorrect(); } catch (e) { }
                 } else {
                     msg = `Incorrecto. Era: ${this.currentQ.o[this.currentQ.a]}`;
+                    try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
                 }
                 this.addChat("AI", msg);
 
@@ -770,6 +920,14 @@
 
         window.onload = () => new App();
     </script>
+    <!-- Modular helpers: chatbot client + GLB loader + avatar controller + botpress example -->
+    <script src="js/webxr-manager.js"></script>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <script src="js/modelviewer-manager.js"></script>
+    <script src="js/chatbot.js"></script>
+    <script src="js/glb-loader.js"></script>
+    <script src="js/avatar-controller.js"></script>
+    <script src="js/botpress_example.js"></script>
 </body>
 
 </html>

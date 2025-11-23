@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Avatar Controller Tests</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="../js/avatar-controller.js"></script>
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Avatar Controller - Smoke Tests</h2>
+    <div id="result"></div>
+    <script>
+        (async function () {
+            const resEl = document.getElementById('result');
+            function log(msg) { const p = document.createElement('div'); p.textContent = msg; resEl.appendChild(p); }
+
+            // Setup minimal scene
+            const scene = new THREE.Scene();
+            const cam = new THREE.PerspectiveCamera(60, 2, 0.1, 1000); cam.position.set(0, 1.5, 5);
+            const renderer = new THREE.WebGLRenderer(); renderer.setSize(400, 200); document.body.appendChild(renderer.domElement);
+            const light = new THREE.DirectionalLight(0xffffff, 1); light.position.set(5, 10, 7); scene.add(light);
+
+            const controller = new AvatarController(scene, { scale: 1 });
+
+            // Usar una GLB pública (Fox) que incluye animaciones
+            const foxUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Fox/glTF-Binary/Fox.glb';
+
+            try {
+                log('Cargando GLB de prueba: Fox...');
+                const info = await controller.loadFromUrl(foxUrl);
+                log('Cargado. Animations: ' + (info.animations.length || 0));
+                // reproducir animación 0 (debería funcionar)
+                controller.playCorrect();
+                log('playCorrect() ejecutado');
+                setTimeout(() => { controller.playIncorrect(); log('playIncorrect() ejecutado'); }, 2500);
+            } catch (e) {
+                log('ERROR cargando GLB: ' + e.message);
+            }
+
+            (function animate() { requestAnimationFrame(animate); renderer.render(scene, cam); })();
+        })();
+    </script>
+</body>
+
+</html>
