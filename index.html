@@ -303,10 +303,35 @@
         </div>
 
         <!-- Footer: Chat -->
-        <div class="glass-panel p-4 rounded-lg w-66 self-end pointer-events-auto h-64 overflow-y-auto shadow-2xl border border-blue-500/30 absolute bottom-4 right-4"
-            id="chat-container">
-            <div class="chat-bubble-ai">Sistema en línea. Esperando inicio de secuencia.</div>
+<div id="chat-wrapper" class="pointer-events-auto glass-panel p-4 rounded-lg w-80 absolute bottom-4 right-4 flex flex-col shadow-2xl border border-blue-500/30 transition-all duration-300 z-50" style="height: 300px;">    
+        <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+            <span class="text-xs font-bold text-blue-300 uppercase tracking-widest">
+                <i class="fas fa-satellite-dish mr-2"></i>Comandos IA
+            </span>
+            <div class="flex gap-2">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            </div>
         </div>
+
+        <div id="chat-messages-area" class="flex-1 overflow-y-auto mb-2 pr-2 space-y-2 scrollbar-thin scrollbar-thumb-blue-900">
+            <div class="chat-bubble-ai text-xs">Sistema listo. Comandos disponibles: "Iniciar", "Comprar Pista", "Usar Pista".</div>
+        </div>
+
+        <div class="flex gap-2 pt-2 mt-auto border-t border-gray-700/50">
+            <button id="chat-mic-btn" 
+                    class="bg-gray-700 hover:bg-red-600 text-white px-3 rounded transition shadow-lg border border-gray-500 hover:border-red-400 group relative">
+                <i class="fas fa-microphone text-xs group-hover:animate-pulse"></i>
+            </button>
+
+            <input id="chat-input-field" type="text" placeholder="Escribe o habla..." 
+                class="w-full bg-black/40 border border-blue-500/30 rounded px-3 py-2 text-xs text-white focus:border-blue-400 focus:outline-none transition">
+            
+            <button id="chat-send-btn" 
+                    class="bg-blue-700 hover:bg-blue-600 text-white px-3 rounded transition shadow-lg">
+                <i class="fas fa-arrow-right text-xs"></i>
+            </button>
+        </div>
+    </div>
     </div>
 
     <script>
@@ -690,13 +715,23 @@
                     qText: document.getElementById('q-text'),
                     qCat: document.getElementById('q-category'),
                     answers: document.getElementById('answers-grid'),
-                    chat: document.getElementById('chat-container'),
+                    //chat: document.getElementById('chat-container'),
                     hub: document.getElementById('hub-overlay'),
                     hintOverlay: document.getElementById('hint-overlay'),
                     btnFreeze: document.getElementById('btn-freeze')
                 };
 
                 this.bindEvents();
+                
+                    // 5. --- INTEGRACIÓN DEL CHATBOT MODULAR (AQUÍ ES EL CAMBIO) ---
+            // Verificamos que la clase ChatbotSystem exista (cargada desde chatbot.js)
+            if (typeof ChatbotSystem !== 'undefined') {
+                // Le pasamos 'this' (la instancia de App) para que el bot pueda controlar el juego
+                this.chatbot = new ChatbotSystem(this);
+            } else {
+                console.warn("El archivo js/chatbot.js no se ha cargado o la clase no existe.");
+            }
+
                 this.startSystem();
             }
 
@@ -932,11 +967,13 @@
             }
 
             addChat(who, text) {
-                const div = document.createElement('div');
-                div.className = who === 'AI' ? 'chat-bubble-ai' : 'chat-bubble-user';
-                div.textContent = text;
-                this.ui.chat.appendChild(div);
-                this.ui.chat.scrollTop = this.ui.chat.scrollHeight;
+                // Si el módulo del chatbot existe, le pedimos a él que pinte el mensaje
+                if (this.chatbot) {
+                    this.chatbot.renderMessage(who, text);
+                } else {
+                    // Por si acaso el archivo JS falló al cargar, lo vemos en consola
+                    console.log(`[${who}]: ${text}`);
+                }
             }
 
             simulateClick() {
