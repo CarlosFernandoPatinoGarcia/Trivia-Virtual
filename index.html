@@ -683,64 +683,73 @@
                         } catch (e) { console.warn('AudioManager init failed', e); }
 
                         // Helper: carga y reproduce un estado (por ejemplo 'correct' o 'incorrect').
+                        // REEMPLAZA tu método playAvatarState actual con este:
                         this.playAvatarState = async (stateName) => {
-                            // Prefer <model-viewer> manager when available (HTML-first)
                             try {
-                                if (modelViewerManager) {
-                                    const mvUrls = (modelViewerManager.opts && modelViewerManager.opts.states) || AVATAR_STATE_FILES || {};
-                                    if (modelViewerManager.models[stateName]) {
-                                        await modelViewerManager.playState(stateName);
-                                        return;
-                                    } else if (AVATAR_STATE_FILES && AVATAR_STATE_FILES[stateName]) {
-                                        try {
-                                            const entry = AVATAR_STATE_FILES[stateName];
-                                            const src = (typeof entry === 'string') ? entry : entry.src;
-                                            const mvOpts = (typeof entry === 'object') ? { desiredHeight: entry.desiredHeight, normalize: entry.normalize } : {};
-                                            await modelViewerManager.loadState(stateName, src, mvOpts);
-                                            await modelViewerManager.playState(stateName);
-                                            return;
-                                        } catch (e) {
-                                            console.warn('Model-viewer failed to load state', stateName, e);
-                                        }
-                                    }
-                                }
+                                // 1. Primero cargar y reproducir el estado solicitado
+                                const urls = (this.avatarController && this.avatarController.opts && this.avatarController.opts.states) || {};
 
-                                // Fallback to AvatarController if present
-                                if (this.avatarController) {
-                                    const urls = (this.avatarController.opts && this.avatarController.opts.states) || {};
-                                    // support object entries with src/options
-                                    const entry = urls[stateName] || (AVATAR_STATE_FILES && AVATAR_STATE_FILES[stateName]);
-                                    if (this.avatarController.models[stateName]) {
-                                        await this.avatarController.playState(stateName);
-                                        return;
-                                    } else if (entry) {
-                                        const src = (typeof entry === 'string') ? entry : entry.src;
-                                        const loadOpts = (typeof entry === 'object') ? { desiredHeight: entry.desiredHeight, normalize: entry.normalize } : {};
-                                        try {
-                                            await this.avatarController.loadState(stateName, src, loadOpts);
-                                            await this.avatarController.playState(stateName);
-                                            return;
-                                        } catch (e) { console.warn('Error cargando estado', stateName, e); }
-                                    }
-                                }
+                                if (this.avatarController.models[stateName]) {
+                                    await this.avatarController.playState(stateName);
+                                } else if (urls[stateName]) {
+                                    const entry = urls[stateName];
+                                    const src = (typeof entry === 'string') ? entry : entry.src;
+                                    const loadOpts = (typeof entry === 'object') ? {
+                                        desiredHeight: entry.desiredHeight,
+                                        normalize: entry.normalize
+                                    } : {};
 
-                                // No assets configured: use simple fallback animations on AvatarController
-                                if (this.avatarController) {
+                                    await this.avatarController.loadState(stateName, src, loadOpts);
+                                    await this.avatarController.playState(stateName);
+                                } else {
+                                    // Fallback a métodos básicos
                                     if (stateName === 'correct') await this.avatarController.playCorrect();
-                                    else await this.avatarController.playIncorrect();
+                                    else if (stateName === 'incorrect') await this.avatarController.playIncorrect();
                                 }
+
+                                // 2. SOLUCIÓN CLAVE: Solo volver a neutral si NO es neutral
+                                if (stateName !== 'neutral' && this.avatarController.models['neutral']) {
+                                    // Esperar a que termine la animación actual + pequeño delay
+                                    const animationDuration = 0; // Duración estimada después de cambiar de estado
+
+                                    setTimeout(() => {
+                                        try {
+                                            // Hacer visible solo neutral
+                                            Object.keys(this.avatarController.models).forEach(k => {
+                                                if (this.avatarController.models[k]) {
+                                                    this.avatarController.models[k].visible = (k === 'neutral');
+                                                }
+                                            });
+
+                                            // 🔥 FORZAR reproducción en loop del neutral
+                                            const neutralMixer = this.avatarController.mixers['neutral'];
+                                            const neutralActions = this.avatarController.actionsMap['neutral'] || [];
+
+                                            if (neutralMixer && neutralActions.length > 0) {
+                                                // Detener cualquier animación previa
+                                                neutralActions.forEach(action => {
+                                                    try {
+                                                        action.stop();
+                                                        action.reset();
+                                                    } catch (e) { }
+                                                });
+
+                                                // Configurar y reproducir en loop
+                                                const mainAction = neutralActions[0];
+                                                mainAction.setLoop(THREE.LoopRepeat, Infinity);
+                                                mainAction.reset();
+                                                mainAction.play();
+
+                                                console.log('✅ Animación neutral restaurada en loop');
+                                            }
+                                        } catch (e) {
+                                            console.warn('Error restaurando animación neutral:', e);
+                                        }
+                                    }, animationDuration);
+                                }
+
                             } catch (err) {
                                 console.warn('playAvatarState error', err);
-                            }
-
-                            // después de reproducir, volver a neutral si existe
-                            if (this.avatarController.models['neutral']) {
-                                // small delay to ensure crossfade finished
-                                setTimeout(() => {
-                                    Object.keys(this.avatarController.models).forEach(k => {
-                                        this.avatarController.models[k].visible = (k === 'neutral');
-                                    });
-                                }, 300);
                             }
                         };
 
@@ -838,8 +847,14 @@
                             // make sure neutral is visible
                             Object.keys(this.avatarController.models).forEach(k => { this.avatarController.models[k].visible = (k === 'neutral'); });
                         } else if (urls['neutral'] && this.avatarController) {
-                            this.avatarController.loadState('neutral', urls['neutral']).then(info => {
-                                if (this.avatarController.models['neutral']) this.avatarController.models['neutral'].visible = true;
+                            this.avatarController.loadState('neutral', urls['neutral']).then(async info => {
+                                try {
+                                    if (this.avatarController.models['neutral']) {
+                                        this.avatarController.models['neutral'].visible = true;
+                                        // ensure neutral animation is playing
+                                        if (typeof this.avatarController.playState === 'function') await this.avatarController.playState('neutral');
+                                    }
+                                } catch (e) { console.warn('Error playing neutral after load in startWave', e); }
                             }).catch(e => console.warn('No se pudo cargar neutral en startWave', e));
                         }
                     } catch (e) { console.warn(e); }

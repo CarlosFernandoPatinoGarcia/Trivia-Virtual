@@ -77,10 +77,22 @@
                         this.models[stateName] = root;
 
                         if (gltf.animations && gltf.animations.length > 0) {
-                            const mixer = new THREE.AnimationMixer(model);
+                            // Use the root group as mixer root to be robust with different GLTF structures
+                            const mixerRoot = root || model;
+                            const mixer = new THREE.AnimationMixer(mixerRoot);
                             const actions = gltf.animations.map(anim => mixer.clipAction(anim));
                             actions.forEach(a => { try { a.stop(); } catch (e) { } });
                             mixer.setTime(0);
+
+                            // If this is the neutral state, start the first animation in loop immediately
+                            if (stateName === 'neutral' && actions && actions.length > 0) {
+                                try {
+                                    // ensure looping
+                                    try { actions[0].setLoop(THREE.LoopRepeat, Infinity); } catch (ee) { }
+                                    actions[0].play();
+                                } catch (e) { console.warn('Could not auto-play neutral animation', e); }
+                            }
+
                             this.mixers[stateName] = mixer;
                             this.actionsMap[stateName] = actions;
                         } else {
@@ -100,9 +112,32 @@
             const root = this.models[stateName];
             const actions = this.actionsMap[stateName] || [];
             if (actions && actions.length > 0 && this.mixers[stateName]) {
+                // Stop other actions for this state
                 actions.forEach(a => { try { a.stop(); } catch (e) { } });
                 const action = actions[0];
-                try { action.reset(); action.setEffectiveTimeScale(1); if (typeof action.setEffectiveWeight === 'function') action.setEffectiveWeight(1); action.play(); } catch (e) { try { action.play(); } catch (ee) { } }
+                try {
+                    action.reset();
+                    action.setEffectiveTimeScale(1);
+                    if (typeof action.setEffectiveWeight === 'function') action.setEffectiveWeight(1);
+
+                    // If this is the neutral state, ensure the first animation is reset and playing in loop indefinitely
+                    if (stateName === 'neutral') {
+                        try {
+                            const mixer = this.mixers[stateName];
+                            if (mixer && typeof mixer.setTime === 'function') {
+                                try { mixer.setTime(0); } catch (e) { }
+                            }
+                            try { action.reset(); } catch (e) { }
+                            try { action.setLoop(THREE.LoopRepeat, Infinity); } catch (e) { }
+                            try { action.play(); } catch (e) { }
+                            // keep playing; resolve immediately
+                            return Promise.resolve();
+                        } catch (e) { console.warn('Could not start neutral action', e); }
+                    }
+
+                    // otherwise play once and stop after its duration
+                    action.play();
+                } catch (e) { try { action.play(); } catch (ee) { } }
                 const durationMs = (action._clip && action._clip.duration ? action._clip.duration : 2) * 1000 + 200;
                 return new Promise((res) => setTimeout(() => { try { action.stop(); } catch (e) { } res(durationMs); }, durationMs));
             }
