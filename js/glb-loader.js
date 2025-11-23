@@ -13,7 +13,7 @@
 
     async function loadAvatarAssets(basePath = 'assets') {
         const baseUrl = `${basePath}/avatar_base.glb`;
-        const animUrl = `${basePath}/t-pose-duo.glb`;
+        const animUrl = `${basePath}/Victory-duo.glb`;
         const result = { base: null, anim: null, mixer: null };
         try {
             const [gBase, gAnim] = await Promise.all([loadGLTF(baseUrl).catch(e => null), loadGLTF(animUrl).catch(e => null)]);
