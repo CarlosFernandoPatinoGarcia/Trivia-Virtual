@@ -63,12 +63,12 @@ class ChatbotSystem {
             this.initListeners();
             this.initVoiceRecognition();
 
-            // Mensaje de bienvenida
+            // Mensaje de bienvenida (no preguntar por nombre de usuario)
             setTimeout(() => {
                 const status = this.useRealAI ? "con Google Gemini" : "en modo simulación";
-                const welcomeMsg = `¿Cómo estás usuario?. Sumérgete en esta experiencia ${status} y gana créditos respondiendo correctamente a la trivia.
-                                    Clica en el boton "Iniciar experiencia" y chatea conmigo si necesitas cualquier empujón.
-                                    Puedes empezar escribiendo "Iniciar Juego" o activando el micrófono. Que disfrutes el juego.`;
+                const welcomeMsg = `Bienvenido a la experiencia ${status}. Responde preguntas para ganar créditos y disfruta del juego.
+                                    Pulsa el botón "Iniciar Experiencia" para comenzar o usa el chat para pedirme ayuda.
+                                    Puedes empezar escribiendo "Iniciar Juego" o activando el micrófono.`;
                 this.renderMessage('AI', welcomeMsg);
                 this.speak(welcomeMsg);
             }, 1000);
@@ -360,7 +360,7 @@ class ChatbotSystem {
 
         // 5. INFORMACIÓN Y ESTADO
         else if (lower.includes('hola') || lower.includes('hi') || lower.includes('hey') || lower.includes('buenas') || lower.includes('saludos') || lower.includes('que tal')) {
-            response = `¡Hola Usuario! Te encuentras en la oleada ${this.app.waveCount} y tienes ${this.app.state.score} créditos. ¿Listo para la trivia?
+            response = `¡Hola! Te encuentras en la oleada ${this.app.waveCount} y tienes ${this.app.state.score} créditos. ¿Listo para la trivia?
                         Empieza una nueva oleada diciendo "iniciar juego".`;
             this.achievementSystem.unlock("saludador");
         }
