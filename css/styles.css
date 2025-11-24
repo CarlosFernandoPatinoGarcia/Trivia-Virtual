@@ -71,6 +71,9 @@ body {
 
     background-color: #111;
     font-family: 'Segoe UI', sans-serif;
+    /* Allow pinch-zoom and default touch gestures on mobile browsers */
+    touch-action: auto;
+    -ms-touch-action: auto;
 }
 
 #canvas-container {
@@ -790,5 +793,143 @@ body {
     #chat-wrapper #chat-send-btn,
     #chat-wrapper #chat-input-field {
         touch-action: manipulation;
+    }
+}
+
+/* Ensure Hub overlay content is always visible on small screens.
+   Make the glass panel scrollable and keep the "next wave" button sticky/visible. */
+@media (max-width: 640px) {
+    #hub-overlay .glass-panel {
+        /* Allow the panel to use most of the viewport while leaving space for sticky controls */
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 96px;
+        /* space for sticky button */
+    }
+
+    /* Keep the next-wave button in normal flow so it scrolls with the panel
+       (no sticky behavior) but keep it large and full-width for easy tapping */
+    #btn-next-wave {
+        display: block;
+        width: calc(100% - 32px);
+        margin: 8px auto;
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+    }
+
+    /* Reduce internal gaps so content fits vertically */
+    #hub-overlay .grid {
+        gap: 0.5rem;
+    }
+
+    #hub-overlay .grid>div {
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 420px) {
+
+    /* Extra-safe adjustments for very small screens */
+    #hub-overlay .glass-panel {
+        max-height: calc(100vh - 100px);
+        padding-bottom: 84px;
+    }
+
+    #btn-next-wave {
+        width: calc(100% - 24px);
+        font-size: 0.95rem;
+        padding: 0.6rem 0.85rem;
+    }
+
+    /* Ensure the QR and small visuals shrink so the action remains visible */
+    #hub-qr {
+        width: 56px !important;
+        height: 56px !important;
+    }
+}
+
+/* Additional breakpoints to cover medium and very small screens */
+@media (max-width: 900px) {
+
+    /* Slightly reduce large headings and HUD padding */
+    .start-title {
+        font-size: 2.6rem;
+    }
+
+    .hub-title {
+        font-size: 2rem;
+    }
+
+    .hud-panel {
+        padding: 16px;
+    }
+
+    /* Hint preview should shrink a bit on narrower viewports */
+    .hint-video {
+        width: 280px;
+        height: 210px;
+    }
+
+    /* Question badge should scale down
+       and avoid wrapping that causes layout shifts */
+    #q-category {
+        padding: 0.28rem 0.7rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .start-title {
+        font-size: 2.2rem;
+    }
+
+    .start-button {
+        padding: 0.9rem 2rem;
+        font-size: 1rem;
+    }
+
+    .hint-video {
+        width: 240px;
+        height: 180px;
+    }
+
+    /* Make question panel compact on small phones */
+    #question-panel {
+        padding: 1rem !important;
+        width: calc(100% - 24px) !important;
+    }
+
+    /* Smaller hub stats */
+    .hub-stat-value {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .start-title {
+        font-size: 1.8rem;
+        letter-spacing: 0.06em;
+    }
+
+    .hint-video {
+        width: 200px;
+        height: 150px;
+    }
+
+    .hud-panel {
+        padding: 12px;
+    }
+
+    /* Make badges and small labels more compact */
+    #q-category {
+        padding: 0.24rem 0.6rem;
+        font-size: 0.78rem;
+    }
+
+    /* Ensure chat still fits and headers reduce size */
+    #chat-wrapper {
+        height: 280px !important;
     }
 }
