@@ -535,6 +535,8 @@ class App {
         this.totalCorrectAnswers = 0;
         // Indica si el usuario ya configuró manualmente las opciones de juego
         this.userConfigSet = false;
+        // Indica si hay una oleada activa en curso (respondiendo preguntas)
+        this.isPlaying = false;
         this.gameOver = false; // cuando true no se mostrarán más preguntas hasta reinicio
         this.timer = null;
         this.timeLeft = QUESTION_TIME;
@@ -679,6 +681,14 @@ class App {
         if (!text || typeof text !== 'string') return;
         const t = text.trim().toLowerCase();
 
+        // Pre-parse config commands so we can block them if a wave is active
+        const pre_m1 = t.match(/^(?:oleadas)\s*[:\s]+(\d+)$/i);
+        const pre_m2 = t.match(/^(?:preguntas)\s*[:\s]+(\d+)$/i);
+        if (this.isPlaying && (pre_m1 || pre_m2)) {
+            this.addChat('AI', 'No puedes cambiar las oleadas o preguntas mientras una oleada está en curso. Espera a que termine la oleada o reinicia la partida.');
+            return true;
+        }
+
         // oleadas: <n>
         const m1 = t.match(/^(?:oleadas)\s*[:\s]+(\d+)$/i);
         if (m1) {
@@ -707,6 +717,10 @@ class App {
 
         // iniciar -> comenzar la primera ola
         if (t === 'iniciar' || t === 'start') {
+            if (this.isPlaying) {
+                this.addChat('AI', 'Ya hay una oleada en curso. No puedes iniciar otra hasta terminar la actual.');
+                return true;
+            }
             // Rebarajar preguntas cuando se inicia con nueva configuración
             this.questions = this.shuffleArray(this.generateQuestions());
             this.totalCorrectAnswers = 0;
@@ -730,6 +744,8 @@ class App {
         }
         this.state.resetWaveStats();
         this.currentQIndex = 0;
+        // Marcar que la oleada está activa
+        this.isPlaying = true;
         this.ui.hub.style.display = 'none';
         this.ui.wave.textContent = `Wave ${this.waveCount}/${this.maxWaves}`;
         // Ensure neutral avatar is visible (load if needed)
@@ -912,6 +928,8 @@ class App {
         // Si ya llegamos al número máximo de oleadas, declarar victoria
         if (this.waveCount >= this.maxWaves) {
             this.gameOver = true;
+            // La oleada ha terminado, marcar que no hay juego activo
+            this.isPlaying = false;
             this.ui.hub.style.display = 'flex';
 
             document.getElementById('hub-score').textContent = this.state.stats.correctAnswersInWave;
@@ -946,6 +964,8 @@ class App {
 
         // Si aún quedan oleadas, preparar la siguiente
         this.waveCount++;
+        // La oleada finalizó: momento de hub, no hay juego activo hasta iniciar siguiente ola
+        this.isPlaying = false;
         this.ui.hub.style.display = 'flex';
 
         // Actualizar Stats del Hub
@@ -962,6 +982,7 @@ class App {
         // Permitir reconfiguración al reiniciar
         this.userConfigSet = false;
         this.totalCorrectAnswers = 0;
+        this.isPlaying = false;
         this.questions = this.shuffleArray(this.generateQuestions());
         // Restaurar botón de siguiente ola
         const btnNext = document.getElementById('btn-next-wave');
