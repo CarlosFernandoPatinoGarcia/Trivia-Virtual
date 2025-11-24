@@ -37,6 +37,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/ar-cofre.css">
 </head>
 
 <body class="bg-black overflow-hidden font-sans text-white select-none">
@@ -235,12 +236,8 @@
                     class="glass-panel p-10 rounded-3xl max-w-4xl w-full border-2 border-neon-purple shadow-[0_0_60px_rgba(188,19,254,0.3)] text-center relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-neon-blue to-neon-purple"></div>
 
-                    <h1
-                        class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 mb-4 tracking-tighter text-glow">
-                        WAVE COMPLETE
-                    </h1>
-                    <p class="text-neon-purple font-mono text-base tracking-[0.4em] mb-6 text-glow">
-                        SISTEMA RECALIBRANDO...
+                    <h1 class="hub-title text-glow">OLEADA COMPLETA</h1>
+                    <p class="hub-subtitle text-neon-purple font-mono mb-4 text-glow">GUARDANDO SU PROGRESO...
                     </p>
 
                     <!-- Stats compactos -->
@@ -248,19 +245,20 @@
                         <div
                             class="p-6 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center group hover:bg-white/10 transition transform hover:scale-105 duration-300">
                             <i class="fas fa-check-circle text-green-400 text-2xl mb-3"></i>
-                            <div class="text-4xl font-bold text-white mb-1 high-contrast" id="hub-score">0</div>
+                            <div class="hub-stat-value font-bold text-white mb-1 high-contrast" id="hub-score">0</div>
                             <div class="text-xs text-gray-400 uppercase tracking-widest">Aciertos</div>
                         </div>
                         <div
                             class="p-6 bg-white/10 rounded-2xl border-2 border-neon-blue/50 flex flex-col items-center group hover:bg-white/15 transition transform hover:scale-105 duration-300 shadow-neon bg-gradient-to-b from-white/10 to-transparent">
                             <i class="fas fa-coins text-yellow-400 text-2xl mb-3"></i>
-                            <div class="text-4xl font-bold text-yellow-400 mb-1 text-glow" id="hub-credits">0</div>
+                            <div class="hub-stat-value font-bold text-yellow-400 mb-1 text-glow" id="hub-credits">0
+                            </div>
                             <div class="text-xs text-gray-400 uppercase tracking-widest">Créditos</div>
                         </div>
                         <div
                             class="p-6 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center group hover:bg-white/10 transition transform hover:scale-105 duration-300">
                             <i class="fas fa-cube text-neon-blue text-2xl mb-3"></i>
-                            <div class="text-4xl font-bold text-white mb-1 high-contrast" id="hub-items">0</div>
+                            <div class="hub-stat-value font-bold text-white mb-1 high-contrast" id="hub-items">0</div>
                             <div class="text-xs text-gray-400 uppercase tracking-widest">Items</div>
                         </div>
                     </div>
@@ -287,7 +285,7 @@
                                 <div class="flex flex-col items-center">
                                     <div class="chest-container relative">
                                         <div
-                                            class="w-24 h-20 bg-gradient-to-b from-yellow-600 to-yellow-800 rounded-lg chest-glow flex items-center justify-center relative overflow-hidden border-2 border-yellow-400/70">
+                                            class="chest-top w-24 h-20 bg-gradient-to-b from-yellow-600 to-yellow-800 rounded-lg chest-glow flex items-center justify-center relative overflow-hidden border-2 border-yellow-400/70">
                                             <div class="absolute top-0 left-0 w-full h-1 bg-yellow-300/80"></div>
                                             <i class="fas fa-lock-open text-yellow-300 text-2xl unlock-animation"></i>
                                             <div
@@ -295,7 +293,7 @@
                                             </div>
                                         </div>
                                         <div
-                                            class="w-28 h-4 bg-gradient-to-b from-yellow-800 to-yellow-900 rounded-b-lg mt-1 mx-auto border border-yellow-700">
+                                            class="chest-base w-28 h-4 bg-gradient-to-b from-yellow-800 to-yellow-900 rounded-b-lg mt-1 mx-auto border border-yellow-700">
                                         </div>
                                     </div>
                                     <p class="text-neon-blue text-sm font-mono mt-3 text-glow">COFRE AR DESBLOQUEADO</p>
@@ -421,61 +419,7 @@
     <script src="js/main-view.js"></script>
 
     <!-- Script para manejar el QR dinámico -->
-    <script>
-        // Función para generar el QR con el nombre de usuario
-        function generateQRCode(username) {
-            // URL codificada que lleva directamente al modelo AR en modo vista
-            const arChestUrl = `https://${username}.github.io/Trivia-Virtual/ar-cofre.html?mode=view`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(arChestUrl)}`;
-
-            // Actualizar la imagen del QR
-            const qrElement = document.getElementById('hub-qr');
-            if (qrElement) {
-                qrElement.src = qrUrl;
-            }
-
-            return qrUrl;
-        }
-
-        // Función para obtener el nombre de usuario (puedes personalizar esto)
-        function getUsername() {
-            // Aquí puedes implementar diferentes formas de obtener el usuario:
-
-            // 1. Desde una variable global
-            if (window.gameUsername) {
-                return window.gameUsername;
-            }
-
-            // 2. Desde el localStorage
-            const storedUser = localStorage.getItem('triviaUsername');
-            if (storedUser) {
-                return storedUser;
-            }
-
-            // 3. Desde un prompt (solo para desarrollo)
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                const user = prompt('Por favor, ingresa tu nombre de usuario de GitHub:');
-                if (user) {
-                    localStorage.setItem('triviaUsername', user);
-                    return user;
-                }
-            }
-
-            // 4. Valor por defecto (cambiar por tu usuario real)
-            return 'TU-USUARIO';
-        }
-
-        // Generar el QR cuando se carga la página
-        document.addEventListener('DOMContentLoaded', function () {
-            const username = getUsername();
-            generateQRCode(username);
-
-            // También puedes exponer la función globalmente para usarla desde otros scripts
-            window.updateQRCode = function (newUsername) {
-                return generateQRCode(newUsername);
-            };
-        });
-    </script>
+    <script src="js/dinamic-qr.js"></script>
 </body>
 
 </html>
