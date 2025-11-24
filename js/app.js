@@ -76,9 +76,29 @@ class VisionSystem {
             await this.camera.start();
             this.isActive = true;
             this.cursor.style.display = 'block';
+            if (this.callbacks && typeof this.callbacks.onCameraStart === 'function') {
+                try { this.callbacks.onCameraStart(); } catch (e) { }
+            }
             return true;
         } catch (e) {
             console.error(e);
+            return false;
+        }
+    }
+
+    async stop() {
+        try {
+            if (this.camera && typeof this.camera.stop === 'function') {
+                await this.camera.stop();
+            }
+            this.isActive = false;
+            this.cursor.style.display = 'none';
+            if (this.callbacks && typeof this.callbacks.onCameraStop === 'function') {
+                try { this.callbacks.onCameraStop(); } catch (e) { }
+            }
+            return true;
+        } catch (e) {
+            console.warn('VisionSystem.stop error', e);
             return false;
         }
     }
@@ -268,7 +288,15 @@ class App {
             {
                 onMove: (pos) => {/* Raycast logic can go here if needed */ },
                 onClick: () => this.simulateClick(),
-                onSmile: () => this.unlockHint()
+                onSmile: () => this.unlockHint(),
+                onCameraStart: () => {
+                    // Slow down time while camera is active during a wave
+                    if (this.isPlaying) this.setTimeMultiplier(0.6);
+                },
+                onCameraStop: () => {
+                    // Restore normal time when camera stops
+                    this.resetTimeMultiplier();
+                }
             }
         );
 
@@ -540,6 +568,7 @@ class App {
         this.gameOver = false; // cuando true no se mostrarán más preguntas hasta reinicio
         this.timer = null;
         this.timeLeft = QUESTION_TIME;
+        this.timeMultiplier = 1; // 1 = normal speed, <1 = slower time
         this.isFrozen = false;
         this.isHintActive = false;
 
@@ -822,14 +851,14 @@ class App {
         this.timer = setInterval(() => {
             if (this.isFrozen) return;
 
-            this.timeLeft--;
+            // Decrement time by the multiplier (allows slowing down when camera is active)
+            this.timeLeft -= (this.timeMultiplier || 1);
             const pct = (this.timeLeft / QUESTION_TIME) * 100;
-            this.ui.timerBar.style.width = `${pct}%`;
+            this.ui.timerBar.style.width = `${Math.max(0, pct)}%`;
 
             // Visual + audio warning when time is low
             if (this.timeLeft <= 5 && this.timeLeft > 0) {
                 this.ui.timerBar.classList.add('timer-critical');
-                // Play a short tick each second when <=5 (will use mapping if provided)
                 try { if (this.audio) this.audio.play('time_tick'); } catch (e) { }
             }
 
@@ -840,7 +869,6 @@ class App {
 
             if (this.timeLeft <= 0) {
                 clearInterval(this.timer);
-                // Optionally play a final timeout warning
                 try { if (this.audio) this.audio.play('time_warning'); } catch (e) { }
                 this.answer(-1); // Time out
             }
@@ -891,6 +919,8 @@ class App {
         this.isHintActive = true;
         this.vision.setMode('FACE_HINT');
         this.ui.hintOverlay.classList.remove('hidden');
+        // Slow time while the facial scan is active so user has more time to respond
+        if (this.isPlaying) this.setTimeMultiplier(0.6);
         this.addChat("AI", "Escaneando rostro... ¡Sonríe para desbloquear!");
     }
 
@@ -911,6 +941,8 @@ class App {
         this.ui.answers.appendChild(hintText);
 
         this.addChat("AI", "Pista desbloqueada por gesto facial.");
+        // Restaurar tiempo a la normalidad
+        this.resetTimeMultiplier();
     }
 
     freezeTime() {
@@ -930,6 +962,8 @@ class App {
             this.gameOver = true;
             // La oleada ha terminado, marcar que no hay juego activo
             this.isPlaying = false;
+            // Restaurar tiempo en caso de que se haya ralentizado por la cámara
+            this.resetTimeMultiplier();
             this.ui.hub.style.display = 'flex';
 
             document.getElementById('hub-score').textContent = this.state.stats.correctAnswersInWave;
@@ -966,6 +1000,8 @@ class App {
         this.waveCount++;
         // La oleada finalizó: momento de hub, no hay juego activo hasta iniciar siguiente ola
         this.isPlaying = false;
+        // Restaurar tiempo en caso de que se haya ralentizado por la cámara
+        this.resetTimeMultiplier();
         this.ui.hub.style.display = 'flex';
 
         // Actualizar Stats del Hub
@@ -983,6 +1019,7 @@ class App {
         this.userConfigSet = false;
         this.totalCorrectAnswers = 0;
         this.isPlaying = false;
+        this.resetTimeMultiplier();
         this.questions = this.shuffleArray(this.generateQuestions());
         // Restaurar botón de siguiente ola
         const btnNext = document.getElementById('btn-next-wave');
@@ -1004,9 +1041,15 @@ class App {
         if (btnCamera) {
             btnCamera.onclick = () => {
                 if (this.audio) this.audio.play('click');
-                this.vision.start().then(ok => {
-                    if (ok) this.addChat("AI", "Cámara activa.");
-                });
+                if (!this.vision || !this.vision.isActive) {
+                    this.vision.start().then(ok => {
+                        if (ok) this.addChat("AI", "Cámara activa.");
+                    });
+                } else {
+                    this.vision.stop().then(ok => {
+                        if (ok) this.addChat("AI", "Cámara detenida.");
+                    });
+                }
             };
         }
 
@@ -1042,6 +1085,8 @@ class App {
             this.ui.hintOverlay.classList.add('hidden');
             if (this.audio) this.audio.play('cancel');
             this.addChat('AI', 'Escaneo cancelado.');
+            // Restaurar tiempo si estaba ralentizado
+            this.resetTimeMultiplier();
         };
 
         // Eventos Hub (safe)
@@ -1136,6 +1181,20 @@ class App {
         document.addEventListener('click', retryPlay, { once: true });
         document.addEventListener('keydown', retryPlay, { once: true });
         document.addEventListener('touchstart', retryPlay, { once: true });
+    }
+
+    // Control de la velocidad del tiempo de preguntas
+    setTimeMultiplier(factor) {
+        try {
+            const f = Number(factor) || 1;
+            this.timeMultiplier = Math.max(0.2, Math.min(f, 2));
+            this.addChat('AI', 'Tiempo ralentizado temporalmente para ayudar con el tracking.');
+        } catch (e) { }
+    }
+
+    resetTimeMultiplier() {
+        this.timeMultiplier = 1;
+        this.addChat('AI', 'Velocidad de tiempo restaurada a la normalidad.');
     }
 
     addChat(who, text) {
