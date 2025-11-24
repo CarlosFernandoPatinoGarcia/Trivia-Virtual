@@ -195,8 +195,16 @@ class ChatbotSystem {
         this.dom.input.value = '';
 
         const loadingId = this.renderLoading();
-
+        // Primero: permitir al App procesar comandos directos (oleadas/preguntas/iniciar)
         try {
+            if (this.app && typeof this.app.processChatCommand === 'function') {
+                const handled = this.app.processChatCommand(text);
+                if (handled) {
+                    this.removeLoading(loadingId);
+                    return;
+                }
+            }
+
             if (this.useRealAI) {
                 await this.callGeminiAI(text, loadingId);
             } else {

@@ -55,7 +55,7 @@ class VisionSystem {
 
         // Config Hands
         this.hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-        this.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7 });
+        this.hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.9 });
         this.hands.onResults(this.onHandResults.bind(this));
 
         // Config Face Mesh (Solo se carga, se usa bajo demanda)
@@ -529,6 +529,12 @@ class App {
         this.currentQIndex = 0;
         this.waveCount = 1;
         this.maxWaves = 3; // Número de oleadas por partida (configurable)
+        // Número de preguntas por oleada (inicializado desde la constante WAVE_SIZE)
+        this.questionsPerWave = WAVE_SIZE;
+        // Contador global de aciertos (para calcular porcentaje al final)
+        this.totalCorrectAnswers = 0;
+        // Indica si el usuario ya configuró manualmente las opciones de juego
+        this.userConfigSet = false;
         this.gameOver = false; // cuando true no se mostrarán más preguntas hasta reinicio
         this.timer = null;
         this.timeLeft = QUESTION_TIME;
@@ -626,11 +632,95 @@ class App {
 
     startSystem() {
         // Este método ahora será llamado desde la pantalla de inicio
+        // Mostrar pantalla inicial y pedir al usuario que configure mediante el chatbot
         setTimeout(() => {
             document.getElementById('loader').style.display = 'none';
-            this.addChat("AI", "Sistema Inicializado. Wave 1 lista.");
-            this.startWave();
+            this.addChat("AI", "Sistema Inicializado. Bienvenido.");
+            // Indicaciones para configurar por chatbot
+            this.addChat('AI', 'Para configurar escribe: "oleadas: <totalOleadas>" ó "preguntas: <totalPreguntas>".');
+            this.addChat('AI', 'Cuando quieras empezar escribe: "iniciar". Si no configuras nada, se usarán los valores por defecto.');
         }, 1500);
+    }
+
+    // Si el usuario no configuró las opciones, preguntar mediante prompt (se puede omitir)
+    askGameConfigIfNeeded() {
+        if (this.userConfigSet) return;
+        try {
+            const qPer = window.prompt(`Preguntas por oleada (por defecto ${this.questionsPerWave}):`, this.questionsPerWave);
+            const waves = window.prompt(`Número de oleadas (por defecto ${this.maxWaves}):`, this.maxWaves);
+            const qn = parseInt(qPer, 10);
+            const wn = parseInt(waves, 10);
+            if (!isNaN(qn) && qn > 0) this.questionsPerWave = Math.min(Math.max(qn, 1), 50);
+            if (!isNaN(wn) && wn > 0) this.maxWaves = Math.min(Math.max(wn, 1), 20);
+            // Rebarajar preguntas y reset de contadores relevantes
+            this.questions = this.shuffleArray(this.generateQuestions());
+            this.totalCorrectAnswers = 0;
+            this.userConfigSet = true;
+            this.addChat('AI', `Configuración: ${this.questionsPerWave} preguntas/oleada, ${this.maxWaves} oleadas.`);
+        } catch (e) {
+            console.warn('askGameConfigIfNeeded error', e);
+        }
+    }
+
+    // Permite al chatbot (u otra parte) establecer la configuración programáticamente
+    setGameConfig(numWaves, questionsPerWave) {
+        if (typeof numWaves === 'number' && numWaves > 0) this.maxWaves = Math.min(Math.max(Math.floor(numWaves), 1), 50);
+        if (typeof questionsPerWave === 'number' && questionsPerWave > 0) this.questionsPerWave = Math.min(Math.max(Math.floor(questionsPerWave), 1), 100);
+        this.questions = this.shuffleArray(this.generateQuestions());
+        this.totalCorrectAnswers = 0;
+        this.userConfigSet = true;
+        // Actualizar UI del contador de oleadas si está presente
+        try { if (this.ui && this.ui.wave) this.ui.wave.textContent = `Wave ${this.waveCount}/${this.maxWaves}`; } catch (e) { }
+        this.addChat('AI', `Configuración establecida: ${this.questionsPerWave} preguntas/oleada, ${this.maxWaves} oleadas.`);
+    }
+
+    // Permite que el Chatbot (o cualquier UI) envíe comandos de texto para configurar/iniciar
+    processChatCommand(text) {
+        if (!text || typeof text !== 'string') return;
+        const t = text.trim().toLowerCase();
+
+        // oleadas: <n>
+        const m1 = t.match(/^(?:oleadas)\s*[:\s]+(\d+)$/i);
+        if (m1) {
+            const n = parseInt(m1[1], 10);
+            if (!isNaN(n) && n > 0) {
+                this.maxWaves = Math.min(Math.max(n, 1), 50);
+                this.userConfigSet = true;
+                this.addChat('AI', `Se estableció número de oleadas: ${this.maxWaves}. Ejemplo: escribe "preguntas: 5" si también quieres cambiar preguntas por oleada.`);
+                try { if (this.ui && this.ui.wave) this.ui.wave.textContent = `Wave ${this.waveCount}/${this.maxWaves}`; } catch (e) { }
+                return true;
+            }
+        }
+
+        // preguntas: <n>
+        const m2 = t.match(/^(?:preguntas)\s*[:\s]+(\d+)$/i);
+        if (m2) {
+            const n = parseInt(m2[1], 10);
+            if (!isNaN(n) && n > 0) {
+                this.questionsPerWave = Math.min(Math.max(n, 1), 100);
+                this.userConfigSet = true;
+                this.addChat('AI', `Se estableció preguntas por oleada: ${this.questionsPerWave}. Ejemplo: escribe "oleadas: 3" para cambiar el número de oleadas.`);
+                try { if (this.ui && this.ui.wave) this.ui.wave.textContent = `Wave ${this.waveCount}/${this.maxWaves} - 0/${this.questionsPerWave}`; } catch (e) { }
+                return true;
+            }
+        }
+
+        // iniciar -> comenzar la primera ola
+        if (t === 'iniciar' || t === 'start') {
+            // Rebarajar preguntas cuando se inicia con nueva configuración
+            this.questions = this.shuffleArray(this.generateQuestions());
+            this.totalCorrectAnswers = 0;
+            this.waveCount = 1;
+            this.currentQIndex = 0;
+            this.gameOver = false;
+            this.addChat('AI', 'Iniciando la primera oleada... ¡buena suerte!');
+            this.startWave();
+            return true;
+        }
+
+        // Si no coincide con nada, informar al usuario
+        this.addChat('AI', 'Comando no reconocido. Usa "oleadas: <n>", "preguntas: <n>" o "iniciar". Ejemplo: "oleadas: 3" y luego "preguntas: 5", luego escribe "iniciar".');
+        return false;
     }
 
     startWave() {
@@ -641,7 +731,7 @@ class App {
         this.state.resetWaveStats();
         this.currentQIndex = 0;
         this.ui.hub.style.display = 'none';
-        this.ui.wave.textContent = `Wave ${this.waveCount}`;
+        this.ui.wave.textContent = `Wave ${this.waveCount}/${this.maxWaves}`;
         // Ensure neutral avatar is visible (load if needed)
         try {
             const urls = (this.avatarController && this.avatarController.opts && this.avatarController.opts.states) || {};
@@ -666,18 +756,20 @@ class App {
 
     nextQuestion() {
         if (this.gameOver) return; // no mostrar preguntas si ya ganó
-        if (this.currentQIndex >= WAVE_SIZE) {
+        if (this.currentQIndex >= this.questionsPerWave) {
             this.endWave();
             return;
         }
 
-        const q = this.questions[(this.waveCount * WAVE_SIZE + this.currentQIndex) % this.questions.length];
+        // Calcular índice global de pregunta: (oleadaActual-1) * preguntasPorOleada + índiceDentroDeOleada
+        const globalIndex = ((this.waveCount - 1) * this.questionsPerWave + this.currentQIndex) % this.questions.length;
+        const q = this.questions[globalIndex];
         this.currentQ = q;
 
         // UI Update
         this.ui.qText.textContent = q.t;
         this.ui.qCat.textContent = q.c;
-        this.ui.wave.textContent = `Wave ${this.waveCount} - ${this.currentQIndex + 1}/${WAVE_SIZE}`;
+        this.ui.wave.textContent = `Wave ${this.waveCount}/${this.maxWaves} - ${this.currentQIndex + 1}/${this.questionsPerWave}`;
         this.ui.answers.innerHTML = '';
 
         // Shuffle options so answer positions vary each time
@@ -757,6 +849,7 @@ class App {
             // Visual feedback: flash the score/credits display
             try { this.flashScore(); } catch (e) { }
             this.state.stats.correctAnswersInWave++;
+            this.totalCorrectAnswers++;
             try { if (this.playAvatarState) this.playAvatarState('correct'); else this.avatarController && this.avatarController.playCorrect(); } catch (e) { }
             if (this.audio) { this.audio.play('correct'); setTimeout(() => { this.audio.play('points'); }, 120); }
         } else {
@@ -825,8 +918,21 @@ class App {
             document.getElementById('hub-credits').textContent = this.state.score;
             document.getElementById('hub-items').textContent = this.state.stats.totalItems;
 
-            // Mensaje de victoria
-            this.addChat('AI', `🏆 ¡Has completado las ${this.maxWaves} oleadas! Has ganado ${this.state.score} créditos.`);
+            // Calcular porcentaje total de aciertos en la partida
+            const totalQuestions = this.maxWaves * this.questionsPerWave;
+            const percent = totalQuestions > 0 ? Math.round((this.totalCorrectAnswers / totalQuestions) * 100) : 0;
+            this.addChat('AI', `🏆 Has completado las ${this.maxWaves} oleadas. Aciertos: ${this.totalCorrectAnswers}/${totalQuestions} (${percent}%).`);
+
+            // Aplicar regla del 70%: si >=70% mantiene/créditos, si <70% pierde los créditos acumulados
+            if (percent >= 70) {
+                this.addChat('AI', `🎉 Excelente — superaste el 70% (${percent}%). Mantienes tus créditos: ${this.state.score} CR.`);
+            } else {
+                const lost = this.state.score;
+                this.state.score = 0;
+                // Actualizar UI del score inmediatamente
+                this.updateUI('score', this.state.score);
+                this.addChat('AI', `😕 No alcanzaste el 70% (${percent}%). Perdiste tus créditos acumulados (${lost} CR).`);
+            }
 
             // Cambiar el botón para reiniciar la partida (preservando créditos)
             const btnNext = document.getElementById('btn-next-wave');
@@ -853,12 +959,18 @@ class App {
         this.gameOver = false;
         this.waveCount = 1;
         this.state.resetWaveStats();
+        // Permitir reconfiguración al reiniciar
+        this.userConfigSet = false;
+        this.totalCorrectAnswers = 0;
+        this.questions = this.shuffleArray(this.generateQuestions());
         // Restaurar botón de siguiente ola
         const btnNext = document.getElementById('btn-next-wave');
         if (btnNext) {
             btnNext.textContent = 'INICIAR SIGUIENTE OLA';
             btnNext.onclick = () => { if (this.audio) this.audio.play('click'); this.startWave(); };
         }
+        // Repetir indicaciones de configuración via chatbot
+        this.addChat('AI', 'Si deseas, configura las opciones con: "oleadas: <n>" y "preguntas: <n>". Cuando estés listo escribe "iniciar".');
         // Ocultar hub y volver a la pantalla de inicio del juego
         if (this.ui && this.ui.hub) this.ui.hub.style.display = 'none';
         this.addChat('AI', '✅ Partida reiniciada. Cuando quieras, inicia la primera ola.');
