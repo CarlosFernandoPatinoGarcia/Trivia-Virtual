@@ -107,9 +107,10 @@ body {
     height: 240px;
     object-fit: cover;
     border-radius: 12px;
-    box-shadow: 0 6px 30px rgba(0,0,0,0.6), 0 0 18px rgba(250,204,21,0.25);
-    border: 2px solid rgba(250,204,21,0.2);
-    transform: scaleX(-1); /* espejo para vista tipo selfie */
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6), 0 0 18px rgba(250, 204, 21, 0.25);
+    border: 2px solid rgba(250, 204, 21, 0.2);
+    transform: scaleX(-1);
+    /* espejo para vista tipo selfie */
     -webkit-transform: scaleX(-1);
     display: block;
 }

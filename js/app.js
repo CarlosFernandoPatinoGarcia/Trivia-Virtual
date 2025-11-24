@@ -1222,7 +1222,7 @@ class App {
             hintVid.muted = true;
             hintVid.playsInline = true;
             hintVid.style.display = '';
-            const p = hintVid.play(); if (p && p.catch) p.catch(() => {});
+            const p = hintVid.play(); if (p && p.catch) p.catch(() => { });
         } catch (e) { console.warn('startHintPreview error', e); }
     }
 
