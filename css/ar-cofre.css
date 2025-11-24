@@ -1,8 +1,255 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
-/* Shared utilities moved to styles.css */
+
+/* Page-specific color variables (keep AR page self-contained) */
+:root {
+    --neon-blue: #00f3ff;
+    --neon-purple: #bc13fe;
+    --hud-black: rgba(10, 10, 15, 0.8);
+}
+
+/* Small utility for glowing neon text used on this page */
+.neon-glow {
+    color: white;
+    text-shadow: 0 0 8px var(--neon-blue), 0 0 20px var(--neon-purple), 0 0 30px rgba(188, 19, 254, 0.2);
+}
 
 
 /* AR-specific rules (model-viewer, AR button) remain below */
 
 /* AR-specific styles continue here (kept minimal) */
+
+/* Page-specific styles required by ar-cofre.html */
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #0a0a1f 0%, #1a1a2e 50%, #0f0f23 100%);
+    color: #e5e7eb;
+    font-family: 'Rajdhani', sans-serif;
+    display: flex;
+    height: 100%;
+    text-align: center;
+    padding: 16px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
+.scan-line {
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.chest-container {
+    min-height: 100vh;
+}
+
+/* particles container (id or class) */
+#particles,
+.particles {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Chest visuals */
+.chest-glow {
+    animation: chestPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes chestPulse {
+    0% {
+        box-shadow: 0 0 20px rgba(188, 19, 254, 0.5), 0 0 40px rgba(0, 243, 255, 0.3), 0 0 60px rgba(188, 19, 254, 0.2);
+    }
+
+    100% {
+        box-shadow: 0 0 30px rgba(188, 19, 254, 0.8), 0 0 60px rgba(0, 243, 255, 0.5), 0 0 90px rgba(188, 19, 254, 0.3);
+    }
+}
+
+.reward-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.reward-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.reward-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+}
+
+.title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: #a5b4fc;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+}
+
+/* Responsive tweaks for small screens so titles don't overflow */
+@media (max-width: 600px) {
+    .title {
+        font-size: 1.6rem;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+        margin-bottom: 18px;
+    }
+
+    model-viewer {
+        height: 320px;
+        max-width: 320px;
+    }
+
+    .hud-panel {
+        padding: 16px;
+    }
+}
+
+.instructions {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    color: #cbd5e1;
+    max-width: 500px;
+    margin: 20px auto;
+    line-height: 1.6;
+}
+
+.floating {
+    animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.unlock-animation {
+    animation: unlockShake 0.5s ease-in-out;
+}
+
+@keyframes unlockShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* model-viewer and AR button */
+model-viewer {
+    width: 100%;
+    max-width: 420px;
+    height: 420px;
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(188, 19, 254, 0.5);
+    transition: all 0.3s ease;
+}
+
+model-viewer:hover {
+    box-shadow: 0 0 40px rgba(188, 19, 254, 0.7), 0 0 60px rgba(0, 243, 255, 0.4);
+    transform: scale(1.02);
+}
+
+.ar-button {
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    border: none;
+    border-radius: 50px;
+    color: white;
+    padding: 14px 28px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+    margin-top: 20px;
+    text-transform: uppercase;
+}
+
+.ar-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.8), 0 0 35px rgba(188, 19, 254, 0.5);
+}
+
+/* HUD panel (needed by this page) */
+.hud-panel {
+    background: rgba(10, 10, 15, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 20px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.hud-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+}

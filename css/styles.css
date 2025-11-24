@@ -11,11 +11,12 @@ html {
 }
 
 /* Shared utilities migrated from ar-cofre.css */
-.scan-line {
+body.scan-line {
     min-height: 100vh;
     overflow-x: hidden;
     overflow-y: auto;
 }
+
 
 @keyframes scan {
     0% {
@@ -492,82 +493,7 @@ body {
     }
 }
 
-/* PANTALLA DE RECOMPENSA CON COFRE */
-
-.chest-glow {
-    animation: chestPulse 2s ease-in-out infinite alternate;
-}
-
-.reward-float {
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes chestPulse {
-    0% {
-        box-shadow: 0 0 20px rgba(188, 19, 254, 0.5),
-            0 0 40px rgba(0, 243, 255, 0.3),
-            0 0 60px rgba(188, 19, 254, 0.2);
-    }
-
-    100% {
-        box-shadow: 0 0 30px rgba(188, 19, 254, 0.8),
-            0 0 60px rgba(0, 243, 255, 0.5),
-            0 0 90px rgba(188, 19, 254, 0.3);
-    }
-}
-
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
-}
-
-.particle {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: #00f3ff;
-    border-radius: 50%;
-    animation: particleFloat 3s infinite linear;
-}
-
-@keyframes particleFloat {
-    0% {
-        transform: translateY(0) translateX(0);
-        opacity: 1;
-    }
-
-    100% {
-        transform: translateY(-100px) translateX(20px);
-        opacity: 0;
-    }
-}
-
-.unlock-animation {
-    animation: unlockShake 0.5s ease-in-out;
-}
-
-@keyframes unlockShake {
-
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    25% {
-        transform: translateX(-5px);
-    }
-
-    75% {
-        transform: translateX(5px);
-    }
-}
+/* AR-specific chest/reward visuals moved to ar-cofre.css */
 
 /* Compact styles for Hub overlay (OLEADA COMPLETA) */
 /* Hub compact tweaks: denser layout */
