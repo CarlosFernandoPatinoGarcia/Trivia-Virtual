@@ -699,3 +699,92 @@ body {
         height: 500px;
     }
 }
+
+/* Mobile: ensure UI fits and is scrollable, center main panel and keep chat accessible */
+@media (max-width: 640px) {
+
+    /* Turn the overlay into a single-column flow so nothing overflows off-screen */
+    #ui-overlay {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: auto 1fr auto !important;
+        padding: 8px !important;
+        gap: 8px !important;
+        pointer-events: auto !important;
+        align-items: start;
+        justify-items: center;
+    }
+
+    /* HUD panels become full-width, but allow them to shrink to avoid overflow */
+    .hud-panel {
+        min-width: 0 !important;
+        width: calc(100% - 16px) !important;
+    }
+
+    /* Question panel: centered and constrained to viewport width */
+    #question-panel {
+        max-width: 100% !important;
+        width: calc(100% - 16px) !important;
+        padding: 1.25rem !important;
+        left: 0 !important;
+        transform: none !important;
+        top: auto !important;
+        margin: 8px auto !important;
+        border-radius: 12px !important;
+    }
+
+    /* Ensure hint overlay fits mobile and can scroll if needed */
+    #hint-overlay {
+        position: fixed !important;
+        inset: 12px !important;
+        width: calc(100% - 24px) !important;
+        height: calc(100% - 24px) !important;
+        border-radius: 12px !important;
+        overflow: auto !important;
+        z-index: 90 !important;
+    }
+
+    /* Chat becomes a fixed bottom pane, full width with safe margins */
+    #chat-wrapper {
+        position: fixed !important;
+        bottom: 12px !important;
+        left: 12px !important;
+        right: 12px !important;
+        width: calc(100% - 24px) !important;
+        height: 320px !important;
+        transform: scale(1) !important;
+        z-index: 80 !important;
+        border-radius: 12px !important;
+    }
+
+    /* Hub overlay panel width and margin adjustments */
+    #hub-overlay .glass-panel {
+        max-width: calc(100% - 24px) !important;
+        margin: 0 12px !important;
+    }
+
+    /* Allow body scroll on mobile so content never gets clipped; use smooth scrolling for touch */
+    html,
+    body {
+        height: 100%;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Make chat messages area scrollable within the fixed chat pane */
+    #chat-messages-area {
+        max-height: calc(100% - 140px);
+        overflow-y: auto;
+    }
+
+    /* Keep timer visible but small */
+    #timer-container {
+        height: 4px;
+    }
+
+    /* Ensure interactive elements are fully tappable */
+    #chat-wrapper #chat-mic-btn,
+    #chat-wrapper #chat-send-btn,
+    #chat-wrapper #chat-input-field {
+        touch-action: manipulation;
+    }
+}
