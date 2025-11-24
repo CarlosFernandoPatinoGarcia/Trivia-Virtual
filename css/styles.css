@@ -497,12 +497,14 @@ body {
 /* Compact styles for Hub overlay (OLEADA COMPLETA) */
 /* Hub compact tweaks: denser layout */
 #hub-overlay .glass-panel {
-    padding: 1rem; /* tighter */
+    padding: 1rem;
+    /* tighter */
     max-width: 780px;
 }
 
 .hub-title {
-    font-size: 1.9rem; /* smaller, compact */
+    font-size: 1.9rem;
+    /* smaller, compact */
     font-weight: 800;
     color: #ffffff;
     margin-bottom: 0.2rem;
@@ -517,7 +519,8 @@ body {
 }
 
 .hub-stat-value {
-    font-size: 1.15rem; /* reduce further */
+    font-size: 1.15rem;
+    /* reduce further */
     line-height: 1;
 }
 
@@ -526,30 +529,34 @@ body {
     gap: 0.6rem;
 }
 
-#hub-overlay .grid > div {
-    padding: 0.6rem; /* override p-6 */
+#hub-overlay .grid>div {
+    padding: 0.6rem;
+    /* override p-6 */
 }
 
 /* Shrink icons inside hub */
 #hub-overlay .fa-check-circle,
 #hub-overlay .fa-coins,
 #hub-overlay .fa-cube {
-    font-size: 1.25rem; /* smaller icons */
+    font-size: 1.25rem;
+    /* smaller icons */
     margin-bottom: 0.35rem;
 }
 
 /* Reduce chest and QR sizes */
-#hub-overlay .chest-container > div {
-    width: 64px !important;
-    height: 48px !important;
+#hub-overlay .chest-container>div {
+    width: 120px !important;
+    height: 64px !important;
 }
 
 #hub-qr {
-    width: 72px !important;
-    height: 72px !important;
+    width: 130px !important;
+    height: 130px !important;
 }
 
-.reward-float { font-size: 16px; }
+.reward-float {
+    font-size: 16px;
+}
 
 /* Compact next wave button */
 #btn-next-wave {
@@ -558,7 +565,16 @@ body {
 }
 
 @media (max-width: 768px) {
-    .hub-title { font-size: 1.4rem; }
-    .hub-stat-value { font-size: 1rem; }
-    #hub-qr { width: 60px !important; height: 60px !important; }
+    .hub-title {
+        font-size: 1.4rem;
+    }
+
+    .hub-stat-value {
+        font-size: 1rem;
+    }
+
+    #hub-qr {
+        width: 60px !important;
+        height: 60px !important;
+    }
 }
