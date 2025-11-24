@@ -1,4 +1,9 @@
 /* Extracted styles from index.html */
+html {
+    /* Reduce global root font-size so Tailwind rem-based sizes are slightly smaller at 100% zoom */
+    font-size: 14px;
+}
+
 body {
     margin: 0;
     overflow: hidden;
@@ -25,6 +30,28 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Make sure content badges like #q-category are visible above panels */
+#question-panel {
+    overflow: visible;
+}
+
+/* Soft neon glow for important text */
+.text-glow {
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6), 0 0 14px rgba(188, 19, 254, 0.25);
+}
+
+/* Category badge inside question panel */
+#q-category {
+    color: #ffffff;
+    /* higher contrast than neon-blue on dark backgrounds */
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(255, 255, 255, 0.02));
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    z-index: 60;
+    display: inline-block;
+    letter-spacing: 0.12em;
+}
+
 .chat-bubble-ai {
     background: linear-gradient(135deg, #004e92 0%, #000428 100%);
     border-left: 4px solid #00d2ff;
@@ -33,6 +60,7 @@ body {
     margin-bottom: 8px;
     font-size: 0.9rem;
     animation: fadeIn 0.3s ease-out;
+    text-align: left;
 }
 
 .chat-bubble-user {
@@ -44,6 +72,11 @@ body {
     text-align: right;
     font-size: 0.9rem;
     animation: fadeIn 0.3s ease-out;
+}
+
+/* Asegurar que el área de mensajes use alineación a la izquierda por defecto */
+#chat-messages-area {
+    text-align: left;
 }
 
 @keyframes fadeIn {
@@ -213,17 +246,20 @@ body {
 
 .start-container {
     text-align: center;
-    padding: 3rem;
+    padding: 1.5rem;
+    /* reduce padding to make elements less large */
     background: rgba(8, 15, 30, 0.9);
     border: 2px solid var(--neon-blue);
     border-radius: 2rem;
     box-shadow: 0 0 50px rgba(0, 243, 255, 0.3);
-    max-width: 600px;
+    max-width: 520px;
+    /* slightly narrower */
     animation: pulse-glow 3s infinite;
 }
 
 .start-title {
-    font-size: 4rem;
+    font-size: 3rem;
+    /* scale down big title */
     font-weight: 900;
     background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
     -webkit-background-clip: text;
@@ -235,7 +271,7 @@ body {
 }
 
 .start-subtitle {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     color: var(--neon-blue);
     margin-bottom: 3rem;
     font-weight: 300;
@@ -246,8 +282,8 @@ body {
     background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
     border: none;
     color: white;
-    padding: 1.5rem 4rem;
-    font-size: 1.5rem;
+    padding: 1rem 2.5rem;
+    font-size: 1.05rem;
     font-weight: 700;
     border-radius: 50px;
     cursor: pointer;
@@ -293,7 +329,7 @@ body {
 
 .feature-item {
     background: rgba(255, 255, 255, 0.05);
-    padding: 1.5rem;
+    padding: 1rem;
     border-radius: 1rem;
     border: 1px solid rgba(0, 243, 255, 0.2);
     transition: all 0.3s ease;
@@ -456,4 +492,73 @@ body {
     75% {
         transform: translateX(5px);
     }
+}
+
+/* Compact styles for Hub overlay (OLEADA COMPLETA) */
+/* Hub compact tweaks: denser layout */
+#hub-overlay .glass-panel {
+    padding: 1rem; /* tighter */
+    max-width: 780px;
+}
+
+.hub-title {
+    font-size: 1.9rem; /* smaller, compact */
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.03em;
+    text-align: center;
+}
+
+.hub-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 0.6rem;
+    text-align: center;
+}
+
+.hub-stat-value {
+    font-size: 1.15rem; /* reduce further */
+    line-height: 1;
+}
+
+/* Make stat cards denser */
+#hub-overlay .grid {
+    gap: 0.6rem;
+}
+
+#hub-overlay .grid > div {
+    padding: 0.6rem; /* override p-6 */
+}
+
+/* Shrink icons inside hub */
+#hub-overlay .fa-check-circle,
+#hub-overlay .fa-coins,
+#hub-overlay .fa-cube {
+    font-size: 1.25rem; /* smaller icons */
+    margin-bottom: 0.35rem;
+}
+
+/* Reduce chest and QR sizes */
+#hub-overlay .chest-container > div {
+    width: 64px !important;
+    height: 48px !important;
+}
+
+#hub-qr {
+    width: 72px !important;
+    height: 72px !important;
+}
+
+.reward-float { font-size: 16px; }
+
+/* Compact next wave button */
+#btn-next-wave {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.98rem;
+}
+
+@media (max-width: 768px) {
+    .hub-title { font-size: 1.4rem; }
+    .hub-stat-value { font-size: 1rem; }
+    #hub-qr { width: 60px !important; height: 60px !important; }
 }
