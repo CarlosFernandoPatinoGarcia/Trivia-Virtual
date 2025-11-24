@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Cofre de Oro AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+    </script>
+    <style>
+        body {
+            margin: 0;
+            background: #020617;
+            color: #e5e7eb;
+            font-family: system-ui;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 16px;
+        }
+
+        model-viewer {
+            width: 100%;
+            max-width: 420px;
+            height: 420px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Cofre de recompensa</h1>
+    <p>Toca “Ver en AR”.</p>
+    <model-viewer src="assets/3Dmodels/treasure_chest.glb" alt="Cofre de oro" ar
+        ar-modes="webxr scene-viewer quick-look" camera-controls auto-rotate shadow-intensity="1.0">
+    </model-viewer>
+</body>
+
+</html>
