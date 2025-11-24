@@ -22,8 +22,8 @@ body {
 
 /* UI Overlay futurista */
 .glass-panel {
-    background: rgba(16, 20, 30, 0.85);
-    backdrop-filter: blur(10px);
+    /* background: rgba(16, 20, 30, 0.85); */
+    backdrop-filter: blur(15px);
     border: 1px solid rgba(0, 255, 255, 0.2);
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
     color: white;
@@ -588,5 +588,100 @@ body {
     #hub-qr {
         width: 60px !important;
         height: 60px !important;
+    }
+}
+
+/* Chat enlargement helpers: scale the chat panel and increase its internal control sizes
+   to make buttons (mic, send) easier to reach with the virtual cursor.
+   We use transform scale so the grid layout is preserved while visually enlarging the chat. */
+#chat-wrapper {
+    transform-origin: bottom right;
+    /* Scale up moderately on desktop */
+    transform: scale(1.1);
+    /* Keep smooth transition for dynamic changes */
+    transition: transform 180ms ease-in-out;
+}
+
+/* Slightly increase the wrapper height so scroll area remains comfortable after scaling */
+#chat-wrapper {
+    height: calc(400px * 1.22);
+}
+
+/* Header: larger icon and text for better readability */
+#chat-wrapper .fa-satellite-dish {
+    font-size: 1.5rem !important;
+}
+
+#chat-wrapper .text-sm.font-bold {
+    font-size: 1rem !important;
+}
+
+/* Status dots larger and more visible */
+#chat-wrapper .w-3.h-3 {
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50%;
+}
+
+#chat-wrapper .w-3.h-3.bg-green-500 {
+    box-shadow: 0 0 10px #22c55e !important;
+}
+
+/* Messages: larger font and padding for easier targeting */
+#chat-messages-area {
+    font-size: 1.02rem !important;
+    padding: 1rem !important;
+}
+
+/* Chat bubbles more tappable */
+#chat-messages-area .chat-bubble-ai,
+#chat-messages-area .chat-bubble-user {
+    padding: 14px !important;
+    border-radius: 14px !important;
+}
+
+/* Footer controls: enlarge mic, input and send button */
+#chat-wrapper #chat-mic-btn {
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 12px !important;
+    font-size: 1.25rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#chat-wrapper #chat-send-btn {
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 12px !important;
+    font-size: 1.15rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#chat-wrapper #chat-input-field {
+    font-size: 1rem !important;
+    padding: 0.9rem 0.9rem !important;
+}
+
+/* Ensure the scaled chat does not push other UI out of place: allow overflow and keep pointer-events */
+.row-start-2 .flex.items-end.pointer-events-none {
+    overflow: visible;
+}
+
+/* Reduce scale on small screens to avoid clipping */
+@media (max-width: 1024px) {
+    #chat-wrapper {
+        transform: scale(1.05);
+        height: calc(500px * 1.05);
+    }
+}
+
+@media (max-width: 640px) {
+    #chat-wrapper {
+        transform: scale(1);
+        height: 500px;
     }
 }
