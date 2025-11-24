@@ -4,9 +4,70 @@ html {
     font-size: 14px;
 }
 
+:root {
+    --neon-blue: #00f3ff;
+    --neon-purple: #bc13fe;
+    --hud-black: rgba(10, 10, 15, 0.95);
+}
+
+/* Shared utilities migrated from ar-cofre.css */
+.scan-line {
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+@keyframes scan {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.8), 0 0 30px rgba(0, 243, 255, 0.4);
+    }
+}
+
+/* HUD common panel styling (shared between pages) */
+.hud-panel {
+    background: rgba(10, 10, 15, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 20px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.hud-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+}
+
 body {
     margin: 0;
-    overflow: hidden;
+
     background-color: #111;
     font-family: 'Segoe UI', sans-serif;
 }
@@ -683,6 +744,23 @@ body {
 /* Ensure the scaled chat does not push other UI out of place: allow overflow and keep pointer-events */
 .row-start-2 .flex.items-end.pointer-events-none {
     overflow: visible;
+    align-items: flex-end;
+    /* ensure child chat pane stays anchored to bottom */
+}
+
+/* Force chat wrapper to a sane max-height so it doesn't stretch the layout */
+#chat-wrapper {
+    align-self: flex-end !important;
+    max-height: 70vh !important;
+    height: auto !important;
+}
+
+@media (min-width: 768px) {
+
+    /* On medium+ screens keep fixed height for chat to avoid stretching */
+    #chat-wrapper {
+        height: 500px !important;
+    }
 }
 
 /* Reduce scale on small screens to avoid clipping */

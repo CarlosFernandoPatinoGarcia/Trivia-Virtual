@@ -37,7 +37,6 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/ar-cofre.css">
 </head>
 
 <body class="bg-black font-sans text-white select-none">
@@ -110,14 +109,14 @@
 
     <!-- Layout principal mejorado -->
     <div id="ui-overlay"
-        class="absolute inset-0 pointer-events-none grid grid-rows-[auto_1fr] grid-cols-[1fr_400px] p-4 gap-4 z-10">
+        class="absolute inset-0 pointer-events-none grid grid-rows-[auto_1fr] grid-cols-1 md:grid-cols-[1fr_400px] p-4 gap-4 z-10">
 
         <!-- Panel superior - Información del juego -->
         <div class="col-span-2 flex justify-between items-start pointer-events-auto">
 
             <!-- Panel izquierdo - Stats del jugador -->
             <div
-                class="hud-panel p-4 rounded-2xl border-l-4 border-l-neon-blue w-auto min-w-[350px] flex items-center gap-4 shadow-neon transform transition hover:bg-black/90 float-animation">
+                class="hud-panel p-4 rounded-2xl border-l-4 border-l-neon-blue w-full md:w-auto md:min-w-[350px] flex items-center gap-4 shadow-neon transform transition hover:bg-black/90 float-animation">
                 <div class="relative">
                     <div
                         class="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center border-2 border-neon-blue/70 shadow-[0_0_15px_inset_rgba(0,243,255,0.3)]">
@@ -365,7 +364,7 @@
         <div class="row-start-2 flex items-end pointer-events-none">
 
             <div id="chat-wrapper"
-                class="pointer-events-auto glass-panel rounded-2xl w-full flex flex-col shadow-2xl border-2 border-neon-blue/40 h-[500px] transition-all duration-300 transform translate-y-0 backdrop-blur-xl bg-gray-900/95 mr-4">
+                class="pointer-events-auto glass-panel rounded-2xl w-full flex flex-col shadow-2xl border-2 border-neon-blue/40 max-h-[70vh] md:h-[500px] transition-all duration-300 transform translate-y-0 backdrop-blur-xl bg-gray-900/95 mr-4">
 
                 <div
                     class="flex justify-between items-center p-4 border-b border-white/20 bg-black/50 rounded-t-2xl cursor-pointer scan-line">
