@@ -28,6 +28,125 @@ body.scan-line {
     }
 }
 
+/* Added detailed Start screen media queries (override earlier simpler rules)
+   These mirror the 600px block styling but adapt sizes per breakpoint. */
+@media (max-width: 900px) {
+    .start-title {
+        font-size: 2.6rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 28px rgba(188, 19, 254, 0.5);
+        letter-spacing: 0.14em;
+    }
+
+    .start-subtitle {
+        font-size: 1.05rem;
+        color: var(--neon-blue);
+        margin-bottom: 2rem;
+        font-weight: 300;
+        letter-spacing: 0.09em;
+    }
+
+    .start-button {
+        padding: 0.95rem 2.2rem;
+        font-size: 1rem;
+        border-radius: 50px;
+        box-shadow: 0 0 28px rgba(0, 243, 255, 0.5);
+        transition: all 0.3s ease;
+    }
+}
+
+@media (max-width: 768px) {
+    .start-title {
+        font-size: 2.2rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 24px rgba(188, 19, 254, 0.45);
+        letter-spacing: 0.12em;
+    }
+
+    .start-subtitle {
+        font-size: 1rem;
+        color: var(--neon-blue);
+        margin-bottom: 1.8rem;
+        font-weight: 300;
+        letter-spacing: 0.08em;
+    }
+
+    .start-button {
+        padding: 0.9rem 2rem;
+        font-size: 1rem;
+        border-radius: 50px;
+        box-shadow: 0 0 26px rgba(0, 243, 255, 0.45);
+    }
+}
+
+@media (max-width: 640px) {
+    .start-title {
+        font-size: 1.9rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.9rem;
+        text-shadow: 0 0 22px rgba(188, 19, 254, 0.45);
+        letter-spacing: 0.1em;
+    }
+
+    .start-subtitle {
+        font-size: 0.95rem;
+        color: var(--neon-blue);
+        margin-bottom: 1.6rem;
+        font-weight: 300;
+        letter-spacing: 0.08em;
+    }
+
+    .start-button {
+        padding: 0.85rem 1.8rem;
+        font-size: 0.9rem;
+        border-radius: 48px;
+        box-shadow: 0 0 22px rgba(0, 243, 255, 0.45);
+    }
+}
+
+@media (max-width: 420px) {
+    .start-title {
+        font-size: 1.6rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.7rem;
+        text-shadow: 0 0 18px rgba(188, 19, 254, 0.4);
+        letter-spacing: 0.06em;
+    }
+
+    .start-subtitle {
+        font-size: 0.9rem;
+        color: var(--neon-blue);
+        margin-bottom: 1.2rem;
+        font-weight: 300;
+        letter-spacing: 0.06em;
+    }
+
+    .start-button {
+        padding: 0.7rem 1.4rem;
+        font-size: 0.85rem;
+        border-radius: 44px;
+        box-shadow: 0 0 18px rgba(0, 243, 255, 0.4);
+    }
+}
+
 .pulse-glow {
     animation: pulse-glow 2s infinite;
 }
@@ -952,5 +1071,108 @@ body {
         #chat-wrapper {
             height: 280px !important;
         }
+    }
+}
+
+/* Re-assert common responsive rules for other UI blocks so previous behavior is preserved */
+@media (max-width: 900px) {
+
+    /* model-viewer / hint preview reductions */
+    .hint-video {
+        width: 280px;
+        height: 210px;
+    }
+
+    model-viewer {
+        max-width: 380px;
+        height: 360px;
+    }
+
+    .hud-panel {
+        padding: 16px;
+    }
+
+    #hub-overlay .glass-panel {
+        max-width: calc(100% - 48px);
+    }
+}
+
+@media (max-width: 768px) {
+
+    /* Chat adjustments and scaled presentation */
+    #chat-wrapper {
+        transform: scale(1.05);
+        height: 460px;
+    }
+
+    /* Make hub QR and stat cards smaller to fit */
+    #hub-qr {
+        width: 80px !important;
+        height: 80px !important;
+    }
+
+    #hub-overlay .grid {
+        gap: 0.6rem;
+    }
+}
+
+@media (max-width: 640px) {
+
+    /* Mobile layout: single column, overlays fit, hint overlay scrollable */
+    #ui-overlay {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: auto 1fr auto !important;
+        padding: 8px !important;
+        gap: 8px !important;
+        align-items: start;
+        justify-items: center;
+    }
+
+    #hint-overlay {
+        position: fixed !important;
+        inset: 12px !important;
+        width: calc(100% - 24px) !important;
+        height: calc(100% - 24px) !important;
+        border-radius: 12px !important;
+        overflow: auto !important;
+        z-index: 90 !important;
+    }
+
+    #hub-overlay .glass-panel {
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 84px;
+    }
+
+    /* Keep next wave button visible in flow (not sticky) */
+    #btn-next-wave {
+        display: block;
+        width: calc(100% - 32px);
+        margin: 8px auto;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 420px) {
+    .hint-video {
+        width: 200px;
+        height: 150px;
+    }
+
+    model-viewer {
+        max-width: 320px;
+        height: 320px;
+    }
+
+    #chat-wrapper {
+        height: 280px !important;
+    }
+
+    #hub-qr {
+        width: 56px !important;
+        height: 56px !important;
     }
 }
