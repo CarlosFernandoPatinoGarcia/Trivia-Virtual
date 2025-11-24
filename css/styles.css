@@ -160,3 +160,33 @@ body {
 #hub-overlay {
     display: none;
 }
+
+/* Audio controls */
+.audio-controls {
+    padding-left: 6px;
+}
+
+.audio-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.audio-range {
+    -webkit-appearance: none;
+    background: linear-gradient(90deg, #00d2ff, #7c4dff);
+    border-radius: 999px;
+}
+
+.audio-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+.audio-range:focus {
+    outline: none;
+}

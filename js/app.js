@@ -234,6 +234,8 @@ class SceneManager {
                     this.core.rotation.y += 0.005;
                     this.core.rotation.x += 0.002;
                 }
+
+                // audio UI wiring removed from render loop (moved to App.bindEvents)
             } else {
                 this.core.rotation.y += 0.005;
                 this.core.rotation.x += 0.002;
@@ -338,32 +340,36 @@ class App {
 
                 this.audio = new AudioManager(AUDIO_MAP);
 
-                // Música de fondo opcional: se intentará reproducir tras la primera interacción del usuario.
+                // Música de fondo opcional: intentar autoplay de forma compatible con políticas
+                // Strategy: 1) intentar reproducir en modo `muted` (los navegadores suelen permitirlo)
+                //           2) crear AudioContext y AnalyserNode (para visuals)
+                //           3) en el primer gesto del usuario, reanudar AudioContext, desmutear y hacer fade-in
                 if (this.audio.mapping && this.audio.mapping.background) {
                     try {
                         this._bgMusic = new Audio(this.audio.mapping.background);
                         this._bgMusic.loop = true;
-                        this._bgMusic.volume = 0.05;
-                        this._bgMusic.play().catch(e => console.warn('Could not init background music', e));
-                        // Intento de reproducción: tratar de iniciar inmediatamente al cargar la página.
-                        // Si autoplay está bloqueado, mantenemos el fallback por interacción de usuario.
-                        const tryPlayBg = async () => {
-                            try {
-                                await this._bgMusic.play();
-                                // Si se pudo reproducir, removemos el listener de clic (no hace falta fallback)
-                                document.removeEventListener('click', tryPlayBg, true);
-                                console.log('Background music started automatically');
-                            } catch (e) {
-                                // Autoplay bloqueado por políticas del navegador. Dejamos el fallback por click.
-                                console.warn('Autoplay blocked for background music, will play on user interaction.');
-                            }
-                        };
+                        // Arrancamos muted para maximizar la probabilidad de autoplay
+                        this._bgMusic.muted = false;
+                        // Inicial volume low (se irá subiendo al desmutear)
+                        this._bgMusic.volume = 0.001;
 
-                        // Intento inmediato
-                        tryPlayBg();
-                        // Fallback por si no se pudo reproducir: iniciar en el primer clic del usuario
-                        document.addEventListener('click', tryPlayBg, { once: true, capture: true });
-                        // Create WebAudio context and analyser, connect the element source
+                        // Estrategia: intentar reproducción silenciosa inmediata
+                        const playPromise = this._bgMusic.play();
+
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                console.log('✅ Música de fondo iniciada (volumen bajo)');
+                                // Una vez que está reproduciendo, podemos ajustar el volumen
+                                setTimeout(() => {
+                                    this._bgMusic.volume = 0.05; // Volumen normal después de iniciar
+                                }, 100);
+                            }).catch(error => {
+                                console.warn('Autoplay bloqueado, esperando interacción:', error);
+                                this._setupAutoplayRetry();
+                            });
+                        }
+
+                        // Setup WebAudio analyser to feed visuals. It's fine to create the context now.
                         try {
                             const AudioContext = window.AudioContext || window.webkitAudioContext;
                             this.audioCtx = new AudioContext();
@@ -380,28 +386,54 @@ class App {
                             } catch (e) {
                                 console.warn('Could not create media element source for background music', e);
                             }
-
-                            // Some browsers require a user gesture to resume the AudioContext
-                            if (this.audioCtx && this.audioCtx.state === 'suspended') {
-                                const resumeCtx = () => {
-                                    this.audioCtx.resume().catch(() => { }).finally(() => {
-                                        document.removeEventListener('click', resumeCtx, true);
-                                    });
-                                };
-                                document.addEventListener('click', resumeCtx, { once: true, capture: true });
-                            }
                         } catch (e) {
                             console.warn('AudioContext setup failed', e);
                         }
-                        // Intento de reproducción tras primer gesto del usuario (por políticas de autoplay)
-                        // const tryPlayBg = async () => {
-                        //     try { await this._bgMusic.play(); } catch (e) { /* autoplay bloqueado, se reproducirá tras interacción */ }
-                        //     document.removeEventListener('click', tryPlayBg, true);
-                        // };
-                        // document.addEventListener('click', tryPlayBg, { once: true, capture: true });
+
+                        // Ensure there's a desired volume value we can reference from the UI
+                        this._desiredVolume = (typeof this._desiredVolume === 'number') ? this._desiredVolume : 0.05;
+                        this._pendingMuted = false;
+
+                        // On first user gesture: resume AudioContext (if suspended), unmute and fade-in the music.
+                        const onFirstGesture = async () => {
+                            try {
+                                // Resume AudioContext if needed
+                                if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                                    try { await this.audioCtx.resume(); } catch (e) { console.warn('AudioContext resume failed', e); }
+                                }
+
+                                // Ensure element is playing (some browsers require play() after resume)
+                                try { await this._bgMusic.play(); } catch (e) { /* ignore */ }
+
+                                // Unmute and fade in volume smoothly
+                                const targetVol = (typeof this._desiredVolume === 'number') ? this._desiredVolume : 0.05;
+                                this._bgMusic.muted = false;
+                                // start from 0 volume if not set
+                                try { this._bgMusic.volume = 0.0; } catch (e) { }
+                                const fadeMs = 700;
+                                const steps = 14;
+                                let step = 0;
+                                const iv = setInterval(() => {
+                                    step++;
+                                    try { this._bgMusic.volume = Math.min(targetVol, (step / steps) * targetVol); } catch (e) { }
+                                    if (step >= steps) clearInterval(iv);
+                                }, Math.max(10, Math.round(fadeMs / steps)));
+
+                                console.log('Background music unmuted after user gesture');
+                            } catch (e) {
+                                console.warn('Error during background music activation on gesture', e);
+                            } finally {
+                                try { document.removeEventListener('click', onFirstGesture, true); } catch (e) { }
+                            }
+                        };
+
+                        // Register once (capture) to catch the earliest gesture
+                        document.addEventListener('click', onFirstGesture, { once: true, capture: true });
+
                     } catch (e) { console.warn('Could not init background music', e); }
                 }
             } catch (e) { console.warn('AudioManager init failed', e); }
+
 
             // Helper: carga y reproduce un estado (por ejemplo 'correct' o 'incorrect').
             // REEMPLAZA tu método playAvatarState actual con este:
@@ -811,6 +843,69 @@ class App {
                 } else this.addChat("AI", "Créditos insuficientes.");
             };
         }
+
+        // Audio controls wiring (mute button + volume slider) - operate on App._bgMusic
+        try {
+            const audioToggle = document.getElementById('btn-audio-toggle');
+            const audioVolume = document.getElementById('audio-volume');
+
+            const setToggleIcon = (muted, btn) => {
+                if (!btn) return;
+                btn.innerHTML = muted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+            };
+
+            if (typeof this._desiredVolume !== 'number') this._desiredVolume = 0.05;
+
+            if (audioToggle) {
+                // reflect initial state (bg starts muted by default)
+                const initialMuted = this._bgMusic ? !!this._bgMusic.muted : true;
+                setToggleIcon(initialMuted, audioToggle);
+                audioToggle.onclick = () => {
+                    if (this._bgMusic) {
+                        this._bgMusic.muted = !this._bgMusic.muted;
+                        setToggleIcon(this._bgMusic.muted, audioToggle);
+                    } else {
+                        // store pending state until bgMusic exists
+                        this._pendingMuted = !this._pendingMuted;
+                        setToggleIcon(this._pendingMuted, audioToggle);
+                    }
+                };
+            }
+
+            if (audioVolume) {
+                const currentVol = this._bgMusic ? (this._bgMusic.volume || this._desiredVolume) : this._desiredVolume;
+                audioVolume.value = Math.round(Math.max(0, Math.min(1, currentVol)) * 100);
+                audioVolume.oninput = (e) => {
+                    const v = Number(e.target.value) / 100;
+                    this._desiredVolume = v;
+                    if (this._bgMusic) {
+                        try { this._bgMusic.volume = v; } catch (e) { }
+                    }
+                };
+            }
+        } catch (e) { console.warn('Audio UI wiring failed', e); }
+    }
+
+    // Método para reintentar cuando haya interacción
+    _setupAutoplayRetry() {
+        const retryPlay = async () => {
+            try {
+                await this._bgMusic.play();
+                console.log('✅ Música iniciada después de interacción');
+                this._bgMusic.volume = 0.05; // Volumen normal
+            } catch (e) {
+                console.warn('Falló el reintento de música:', e);
+            }
+            // Remover listeners después del primer éxito
+            document.removeEventListener('click', retryPlay);
+            document.removeEventListener('keydown', retryPlay);
+            document.removeEventListener('touchstart', retryPlay);
+        };
+
+        // Múltiples eventos de interacción
+        document.addEventListener('click', retryPlay, { once: true });
+        document.addEventListener('keydown', retryPlay, { once: true });
+        document.addEventListener('touchstart', retryPlay, { once: true });
     }
 
     addChat(who, text) {

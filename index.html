@@ -75,6 +75,16 @@
                     class="bg-gray-700 hover:bg-blue-600 text-white px-3 py-1 rounded transition text-sm pointer-events-auto">
                     <i class="fas fa-video mr-2"></i>Tracking
                 </button>
+
+                <!-- Audio controls: mute toggle + volume slider -->
+                <div class="audio-controls flex items-center gap-2 px-2">
+                    <button id="btn-audio-toggle" title="Silenciar / Activar sonido"
+                        class="audio-btn bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded transition text-sm pointer-events-auto">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <input id="audio-volume" type="range" min="0" max="100" value="5" class="audio-range h-1 w-28"
+                        aria-label="Volumen de música" />
+                </div>
             </div>
         </div>
 

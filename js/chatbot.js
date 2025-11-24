@@ -59,7 +59,7 @@ class ChatbotSystem {
             // Mensaje de bienvenida
             setTimeout(() => {
                 const status = this.useRealAI ? "con Google Gemini" : "en modo simulación";
-                const welcomeMsg = `Sistema de voz ${status}. Tienes ${this.app.state.score} créditos. Di "hola" para empezar.`;
+                const welcomeMsg = `Bienvenido. Tienes ${this.app.state.score} créditos. Di "hola" para chatear.`;
                 this.renderMessage('AI', welcomeMsg);
                 this.speak(welcomeMsg);
             }, 1000);
