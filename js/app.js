@@ -296,6 +296,8 @@ class App {
                 onCameraStop: () => {
                     // Restore normal time when camera stops
                     this.resetTimeMultiplier();
+                    // If a hint preview video was shown, clear it
+                    try { if (this.stopHintPreview) this.stopHintPreview(); } catch (e) { }
                 }
             }
         );
@@ -919,6 +921,8 @@ class App {
         this.isHintActive = true;
         this.vision.setMode('FACE_HINT');
         this.ui.hintOverlay.classList.remove('hidden');
+        // Mostrar vista previa espejo de la cámara dentro del overlay
+        try { this.startHintPreview(); } catch (e) { }
         // Slow time while the facial scan is active so user has more time to respond
         if (this.isPlaying) this.setTimeMultiplier(0.6);
         this.addChat("AI", "Escaneando rostro... ¡Sonríe para desbloquear!");
@@ -930,6 +934,8 @@ class App {
         this.isHintActive = false;
         this.vision.setMode('HANDS'); // Volver a manos
         this.ui.hintOverlay.classList.add('hidden');
+        // Limpiar vista previa
+        try { this.stopHintPreview(); } catch (e) { }
 
         // Gasta pista
         this.state.update('hints', -1);
@@ -1083,6 +1089,7 @@ class App {
             this.isHintActive = false;
             this.vision.setMode('HANDS');
             this.ui.hintOverlay.classList.add('hidden');
+            try { this.stopHintPreview(); } catch (e) { }
             if (this.audio) this.audio.play('cancel');
             this.addChat('AI', 'Escaneo cancelado.');
             // Restaurar tiempo si estaba ralentizado
@@ -1195,6 +1202,39 @@ class App {
     resetTimeMultiplier() {
         this.timeMultiplier = 1;
         this.addChat('AI', 'Velocidad de tiempo restaurada a la normalidad.');
+    }
+
+    // Inicia la vista previa de la cámara dentro del overlay de pista (no detiene la cámara)
+    startHintPreview() {
+        try {
+            const hintVid = document.getElementById('hint-video');
+            const inputVid = document.getElementById('input-video');
+            if (!hintVid) return;
+            // Preferir el stream ya disponible en el elemento de entrada (gestión por Mediapipe Camera)
+            if (inputVid && inputVid.srcObject) {
+                try {
+                    hintVid.srcObject = inputVid.srcObject;
+                } catch (e) {
+                    // Some browsers may not allow direct assignment; try captureStream fallback
+                    try { hintVid.srcObject = inputVid.captureStream(); } catch (ee) { }
+                }
+            }
+            hintVid.muted = true;
+            hintVid.playsInline = true;
+            hintVid.style.display = '';
+            const p = hintVid.play(); if (p && p.catch) p.catch(() => {});
+        } catch (e) { console.warn('startHintPreview error', e); }
+    }
+
+    // Limpia la vista previa sin detener la cámara compartida
+    stopHintPreview() {
+        try {
+            const hintVid = document.getElementById('hint-video');
+            if (!hintVid) return;
+            try { hintVid.pause(); } catch (e) { }
+            try { hintVid.srcObject = null; } catch (e) { hintVid.removeAttribute('src'); }
+            hintVid.style.display = 'none';
+        } catch (e) { console.warn('stopHintPreview error', e); }
     }
 
     addChat(who, text) {
