@@ -497,7 +497,7 @@ body {
 /* Compact styles for Hub overlay (OLEADA COMPLETA) */
 /* Hub compact tweaks: denser layout */
 #hub-overlay .glass-panel {
-    padding: 1rem;
+    padding: 0.5rem;
     /* tighter */
     max-width: 780px;
 }
