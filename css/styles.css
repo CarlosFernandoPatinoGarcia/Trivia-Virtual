@@ -503,7 +503,7 @@ body {
 }
 
 .hub-title {
-    font-size: 1.9rem;
+    font-size: 2.6rem;
     /* smaller, compact */
     font-weight: 800;
     color: #ffffff;
@@ -543,10 +543,22 @@ body {
     margin-bottom: 0.35rem;
 }
 
-/* Reduce chest and QR sizes */
-#hub-overlay .chest-container>div {
-    width: 120px !important;
+/* Chest pieces sizing - target top and base separately to avoid size mismatch */
+#hub-overlay .chest-container .chest-top {
+    width: 88px !important;
+    /* chest top width */
     height: 64px !important;
+    /* chest top height */
+    border-radius: 8px;
+}
+
+#hub-overlay .chest-container .chest-base {
+    width: 96px !important;
+    /* slightly wider base for visual support */
+    height: 10px !important;
+    /* short base */
+    margin-top: 6px !important;
+    border-radius: 6px;
 }
 
 #hub-qr {

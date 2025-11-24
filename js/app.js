@@ -567,16 +567,48 @@ class App {
     generateQuestions() {
         // Mock Data expandido
         const base = [
-            { t: "¿Planeta Rojo?", c: "Astronomía", o: ["Venus", "Marte", "Júpiter"], a: 1, h: "Es el cuarto planeta desde el Sol." },
-            { t: "Símbolo del Oro", c: "Química", o: ["Ag", "Au", "Fe"], a: 1, h: "Viene del latín Aurum." },
-            { t: "E = mc^2 es de...", c: "Física", o: ["Newton", "Einstein", "Tesla"], a: 1, h: "Famoso por su teoría de la relatividad." },
-            { t: "Capital de Japón", c: "Geografía", o: ["Seúl", "Tokio", "Pekín"], a: 1, h: "Ciudad famosa por el cruce de Shibuya." },
-            { t: "¿Hueso más largo?", c: "Anatomía", o: ["Fémur", "Tibia", "Húmero"], a: 0, h: "Está en el muslo." },
-            { t: "Padre de la computación", c: "Historia", o: ["Turing", "Gates", "Jobs"], a: 0, h: "Descifró Enigma." },
-            { t: "Velocidad de la luz", c: "Física", o: ["300k km/s", "150k km/s", "1000 km/s"], a: 0, h: "Es lo más rápido del universo." },
-            { t: "Pintó la Mona Lisa", c: "Arte", o: ["Van Gogh", "Da Vinci", "Picasso"], a: 1, h: "Renacentista italiano." },
-            { t: "Raíz cuadrada de 64", c: "Matemáticas", o: ["6", "8", "10"], a: 1, h: "8 por 8." },
-            { t: "Creador de Facebook", c: "Tecnología", o: ["Musk", "Zuckerberg", "Bezos"], a: 1, h: "Empezó en Harvard." }
+            { t: "¿Planeta Rojo?", c: "Astronomía", o: ["Venus", "Marte", "Júpiter", "Saturno"], a: 1, h: "Es el cuarto planeta desde el Sol." },
+            { t: "Símbolo del Oro", c: "Química", o: ["Ag", "Au", "Fe", "Cu"], a: 1, h: "Viene del latín Aurum." },
+            { t: "E = mc^2 es de...", c: "Física", o: ["Newton", "Einstein", "Tesla", "Bohr"], a: 1, h: "Famoso por su teoría de la relatividad." },
+            { t: "Capital de Japón", c: "Geografía", o: ["Seúl", "Tokio", "Pekín", "Bangkok"], a: 1, h: "Ciudad famosa por el cruce de Shibuya." },
+            { t: "¿Hueso más largo?", c: "Anatomía", o: ["Fémur", "Tibia", "Húmero", "Radio"], a: 0, h: "Está en el muslo." },
+            { t: "Padre de la computación", c: "Historia", o: ["Turing", "Gates", "Jobs", "Babbage"], a: 0, h: "Descifró el código Enigma." },
+            { t: "Velocidad de la luz", c: "Física", o: ["300.000 km/s", "150.000 km/s", "1.000 km/s", "3.000 km/s"], a: 0, h: "Es lo más rápido del universo." },
+            { t: "Pintó la Mona Lisa", c: "Arte", o: ["Van Gogh", "Da Vinci", "Picasso", "Monet"], a: 1, h: "Renacentista italiano." },
+            { t: "Raíz cuadrada de 64", c: "Matemáticas", o: ["6", "8", "10", "4"], a: 1, h: "8 por 8." },
+            { t: "Creador de Facebook", c: "Tecnología", o: ["Musk", "Zuckerberg", "Bezos", "Page"], a: 1, h: "Empezó en Harvard." },
+
+            // Nuevas (30 adicionales)
+            { t: "¿Autor del Quijote?", c: "Literatura", o: ["Lope de Vega", "Cervantes", "Góngora", "Quevedo"], a: 1, h: "El manco de Lepanto." },
+            { t: "Elemento 'O'", c: "Química", o: ["Oro", "Osmio", "Oxígeno", "Oganesón"], a: 2, h: "Vital para la respiración humana." },
+            { t: "¿Dónde está la Torre Eiffel?", c: "Geografía", o: ["Londres", "Berlín", "Roma", "París"], a: 3, h: "Capital de Francia." },
+            { t: "Año llegada a la Luna", c: "Historia", o: ["1969", "1975", "1960", "1980"], a: 0, h: "Un pequeño paso para el hombre." },
+            { t: "Animal más rápido (tierra)", c: "Biología", o: ["León", "Guepardo", "Gacela", "Caballo"], a: 1, h: "Felino africano con manchas." },
+            { t: "Fundador de Microsoft", c: "Tecnología", o: ["Steve Jobs", "Bill Gates", "Jeff Bezos", "Tim Cook"], a: 1, h: "Amigo de Paul Allen." },
+            { t: "¿Cuántos lados tiene un hexágono?", c: "Matemáticas", o: ["5", "6", "7", "8"], a: 1, h: "Piensa en un panal de abejas." },
+            { t: "Pintó 'La Noche Estrellada'", c: "Arte", o: ["Dalí", "Van Gogh", "Rembrandt", "Matisse"], a: 1, h: "Se cortó una oreja." },
+            { t: "Moneda del Reino Unido", c: "Economía", o: ["Euro", "Dólar", "Libra", "Franco"], a: 2, h: "Esterlina." },
+            { t: "¿Qué es el 'HTML'?", c: "Tecnología", o: ["Hardware", "Lenguaje Web", "Base de datos", "Sistema Operativo"], a: 1, h: "Estructura las páginas de internet." },
+            { t: "Diosa griega de la sabiduría", c: "Mitología", o: ["Afrodita", "Hera", "Atenea", "Artemisa"], a: 2, h: "Nació de la cabeza de Zeus." },
+            { t: "Continente más grande", c: "Geografía", o: ["América", "África", "Asia", "Europa"], a: 2, h: "Contiene a China y la India." },
+            { t: "Fórmula del agua", c: "Química", o: ["HO", "H2O", "H2O2", "OH"], a: 1, h: "Dos de hidrógeno, uno de oxígeno." },
+            { t: "Primer presidente de EE.UU.", c: "Historia", o: ["Lincoln", "Washington", "Jefferson", "Franklin"], a: 1, h: "Aparece en el billete de 1 dólar." },
+            { t: "¿Qué estudia la botánica?", c: "Ciencia", o: ["Animales", "Rocas", "Plantas", "Estrellas"], a: 2, h: "Reino Plantae." },
+            { t: "Valor aproximado de Pi", c: "Matemáticas", o: ["3.14", "3.41", "3.12", "3.16"], a: 0, h: "Relación circunferencia-diámetro." },
+            { t: "Instrumento para ver estrellas", c: "Astronomía", o: ["Microscopio", "Telescopio", "Periscopio", "Estetoscopio"], a: 1, h: "Galileo lo perfeccionó." },
+            { t: "Capital de Alemania", c: "Geografía", o: ["Múnich", "Hamburgo", "Berlín", "Frankfurt"], a: 2, h: "Tuvo un muro famoso." },
+            { t: "¿Quién es '007'?", c: "Cine", o: ["James Bond", "Indiana Jones", "Ethan Hunt", "Jason Bourne"], a: 0, h: "Al servicio de su Majestad." },
+            { t: "Planeta con anillos visibles", c: "Astronomía", o: ["Marte", "Saturno", "Mercurio", "Neptuno"], a: 1, h: "Sexto planeta del sistema solar." },
+            { t: "Idioma más hablado (nativo)", c: "Demografía", o: ["Inglés", "Español", "Chino Mandarín", "Hindi"], a: 2, h: "Principalmente en China." },
+            { t: "Metal líquido a temperatura ambiente", c: "Química", o: ["Hierro", "Mercurio", "Plomo", "Aluminio"], a: 1, h: "Usado en termómetros antiguos." },
+            { t: "Rey de los dioses nórdicos", c: "Mitología", o: ["Thor", "Loki", "Odin", "Baldur"], a: 2, h: "Padre de todo, tiene un solo ojo." },
+            { t: "Creador de Mickey Mouse", c: "Entretenimiento", o: ["Walt Disney", "Stan Lee", "Hanna-Barbera", "Matt Groening"], a: 0, h: "Fundó un imperio de animación." },
+            { t: "Órgano que bombea sangre", c: "Anatomía", o: ["Hígado", "Corazón", "Pulmón", "Cerebro"], a: 1, h: "Late constantemente." },
+            { t: "¿Qué es la 'RAM'?", c: "Tecnología", o: ["Disco Duro", "Memoria Volátil", "Procesador", "Tarjeta Gráfica"], a: 1, h: "Se borra al apagar la PC." },
+            { t: "País del Sol Naciente", c: "Geografía", o: ["China", "Corea", "Japón", "Tailandia"], a: 2, h: "Su bandera es un círculo rojo." },
+            { t: "Resultado de 7 x 8", c: "Matemáticas", o: ["54", "56", "48", "64"], a: 1, h: "Cincuenta y..." },
+            { t: "Autor de Harry Potter", c: "Literatura", o: ["Tolkien", "J.K. Rowling", "George R.R. Martin", "Stephen King"], a: 1, h: "Escritora británica." },
+            { t: "¿Qué gas respiramos?", c: "Biología", o: ["Helio", "Metano", "Oxígeno", "Dióxido de Carbono"], a: 2, h: "O2." }
         ];
         // Duplicar para tener suficientes para el demo
         return [...base, ...base, ...base];
