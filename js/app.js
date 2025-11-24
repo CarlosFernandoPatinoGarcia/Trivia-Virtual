@@ -1,6 +1,6 @@
 // --- CONFIG ---
-const WAVE_SIZE = 10;
-const QUESTION_TIME = 15; // segundos
+const WAVE_SIZE = 2;
+const QUESTION_TIME = 10; // segundos
 
 // --- 1. STATE MANAGER ---
 class StateManager {
@@ -528,6 +528,8 @@ class App {
         this.questions = this.generateQuestions();
         this.currentQIndex = 0;
         this.waveCount = 1;
+        this.maxWaves = 3; // Número de oleadas por partida (configurable)
+        this.gameOver = false; // cuando true no se mostrarán más preguntas hasta reinicio
         this.timer = null;
         this.timeLeft = QUESTION_TIME;
         this.isFrozen = false;
@@ -590,6 +592,10 @@ class App {
     }
 
     startWave() {
+        if (this.gameOver) {
+            console.log('Partida finalizada. Reinicia para jugar de nuevo.');
+            return;
+        }
         this.state.resetWaveStats();
         this.currentQIndex = 0;
         this.ui.hub.style.display = 'none';
@@ -617,6 +623,7 @@ class App {
     }
 
     nextQuestion() {
+        if (this.gameOver) return; // no mostrar preguntas si ya ganó
         if (this.currentQIndex >= WAVE_SIZE) {
             this.endWave();
             return;
@@ -759,6 +766,29 @@ class App {
 
     // --- HUB & SHOP ---
     endWave() {
+        // Si ya llegamos al número máximo de oleadas, declarar victoria
+        if (this.waveCount >= this.maxWaves) {
+            this.gameOver = true;
+            this.ui.hub.style.display = 'flex';
+
+            document.getElementById('hub-score').textContent = this.state.stats.correctAnswersInWave;
+            document.getElementById('hub-credits').textContent = this.state.score;
+            document.getElementById('hub-items').textContent = this.state.stats.totalItems;
+
+            // Mensaje de victoria
+            this.addChat('AI', `🏆 ¡Has completado las ${this.maxWaves} oleadas! Has ganado ${this.state.score} créditos.`);
+
+            // Cambiar el botón para reiniciar la partida (preservando créditos)
+            const btnNext = document.getElementById('btn-next-wave');
+            if (btnNext) {
+                btnNext.textContent = 'REINICIAR JUEGO';
+                btnNext.onclick = () => { this.resetGame(); };
+            }
+            this.currentQIndex = 0; // Se resetea el índice de preguntas para evitar errores con el chatbot
+            return;
+        }
+
+        // Si aún quedan oleadas, preparar la siguiente
         this.waveCount++;
         this.ui.hub.style.display = 'flex';
 
@@ -766,6 +796,22 @@ class App {
         document.getElementById('hub-score').textContent = this.state.stats.correctAnswersInWave;
         document.getElementById('hub-credits').textContent = this.state.score;
         document.getElementById('hub-items').textContent = this.state.stats.totalItems;
+    }
+
+    // Reinicia la partida para jugar otra vez, preservando créditos acumulados
+    resetGame() {
+        this.gameOver = false;
+        this.waveCount = 1;
+        this.state.resetWaveStats();
+        // Restaurar botón de siguiente ola
+        const btnNext = document.getElementById('btn-next-wave');
+        if (btnNext) {
+            btnNext.textContent = 'INICIAR SIGUIENTE OLA';
+            btnNext.onclick = () => { if (this.audio) this.audio.play('click'); this.startWave(); };
+        }
+        // Ocultar hub y volver a la pantalla de inicio del juego
+        if (this.ui && this.ui.hub) this.ui.hub.style.display = 'none';
+        this.addChat('AI', '✅ Partida reiniciada. Cuando quieras, inicia la primera ola.');
     }
 
     // --- UTILS ---

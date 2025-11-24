@@ -67,7 +67,7 @@ class ChatbotSystem {
             setTimeout(() => {
                 const status = this.useRealAI ? "con Google Gemini" : "en modo simulación";
                 const welcomeMsg = `¿Cómo estás usuario?. Sumérgete en esta experiencia ${status} y gana créditos respondiendo correctamente a la trivia.
-                                    Clica en el boton "Iniciar Juego" y chatea conmigo si necesitas cualquier empujón.
+                                    Clica en el boton "Iniciar experiencia" y chatea conmigo si necesitas cualquier empujón.
                                     Puedes empezar escribiendo "Iniciar Juego" o activando el micrófono. Que disfrutes el juego.`;
                 this.renderMessage('AI', welcomeMsg);
                 this.speak(welcomeMsg);
