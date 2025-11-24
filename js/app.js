@@ -1,5 +1,5 @@
 // --- CONFIG ---
-const WAVE_SIZE = 2;
+const WAVE_SIZE = 3;
 const QUESTION_TIME = 10; // segundos
 
 // --- 1. STATE MANAGER ---
@@ -525,7 +525,7 @@ class App {
         }
 
         // Variables de Juego
-        this.questions = this.generateQuestions();
+        this.questions = this.shuffleArray(this.generateQuestions());
         this.currentQIndex = 0;
         this.waveCount = 1;
         this.maxWaves = 3; // Número de oleadas por partida (configurable)
@@ -562,6 +562,16 @@ class App {
         }
 
         // this.startSystem();
+    }
+
+    // Fisher-Yates shuffle helper
+    shuffleArray(arr) {
+        const a = Array.isArray(arr) ? arr.slice() : [];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
     }
 
     generateQuestions() {
@@ -670,7 +680,14 @@ class App {
         this.ui.wave.textContent = `Wave ${this.waveCount} - ${this.currentQIndex + 1}/${WAVE_SIZE}`;
         this.ui.answers.innerHTML = '';
 
-        q.o.forEach((opt, i) => {
+        // Shuffle options so answer positions vary each time
+        const opts = q.o.map((opt, i) => ({ opt, idx: i }));
+        const shuffled = this.shuffleArray(opts);
+        // Store mapping for validation
+        this.currentOptions = shuffled.map(s => s.opt);
+        this.correctOptionIndex = shuffled.findIndex(s => s.idx === q.a);
+
+        this.currentOptions.forEach((opt, i) => {
             const btn = document.createElement('button');
             btn.className = "bg-blue-900/50 hover:bg-blue-600 border border-blue-500/30 text-white p-3 rounded transition answer-btn";
             btn.textContent = opt;
@@ -734,7 +751,7 @@ class App {
             msg = "Tiempo agotado.";
             try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
             if (this.audio) this.audio.play('incorrect');
-        } else if (index === this.currentQ.a) {
+        } else if (index === this.correctOptionIndex) {
             msg = "Correcto. +100 CR";
             this.state.update('score', 100);
             // Visual feedback: flash the score/credits display
@@ -743,7 +760,8 @@ class App {
             try { if (this.playAvatarState) this.playAvatarState('correct'); else this.avatarController && this.avatarController.playCorrect(); } catch (e) { }
             if (this.audio) { this.audio.play('correct'); setTimeout(() => { this.audio.play('points'); }, 120); }
         } else {
-            msg = `Incorrecto. Era: ${this.currentQ.o[this.currentQ.a]}`;
+            const correctText = (this.currentQ && this.currentQ.o && typeof this.currentQ.a === 'number') ? this.currentQ.o[this.currentQ.a] : 'N/A';
+            msg = `Incorrecto. Era: ${correctText}`;
             try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
             if (this.audio) this.audio.play('incorrect');
         }
