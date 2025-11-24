@@ -559,7 +559,7 @@ class App {
             console.warn("El archivo js/chatbot.js no se ha cargado o la clase no existe.");
         }
 
-        this.startSystem();
+        // this.startSystem();
     }
 
     generateQuestions() {
@@ -581,6 +581,7 @@ class App {
     }
 
     startSystem() {
+        // Este método ahora será llamado desde la pantalla de inicio
         setTimeout(() => {
             document.getElementById('loader').style.display = 'none';
             this.addChat("AI", "Sistema Inicializado. Wave 1 lista.");
@@ -703,7 +704,7 @@ class App {
             try { if (this.playAvatarState) this.playAvatarState('correct'); else this.avatarController && this.avatarController.playCorrect(); } catch (e) { }
             if (this.audio) { this.audio.play('correct'); setTimeout(() => { this.audio.play('points'); }, 120); }
         } else {
-            msg = `Incorrecto. Era: ${this.currentQ.a}`;
+            msg = `Incorrecto. Era: ${this.currentQ.o[this.currentQ.a]}`;
             try { if (this.playAvatarState) this.playAvatarState('incorrect'); else this.avatarController && this.avatarController.playIncorrect(); } catch (e) { }
             if (this.audio) this.audio.play('incorrect');
         }
@@ -948,4 +949,4 @@ class App {
     }
 }
 
-window.onload = () => new App();
+window.onload = () => { window.app = new App(); };

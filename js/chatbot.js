@@ -43,6 +43,13 @@ class ChatbotSystem {
             }
         };
 
+        // Disco mode state (persistent party mode)
+        this.disco = {
+            active: false,
+            intervalId: null,
+            original: null
+        };
+
         // --- REFERENCIAS DOM ---
         this.dom = {
             input: document.getElementById('chat-input-field'),
@@ -59,7 +66,9 @@ class ChatbotSystem {
             // Mensaje de bienvenida
             setTimeout(() => {
                 const status = this.useRealAI ? "con Google Gemini" : "en modo simulación";
-                const welcomeMsg = `Bienvenido. Tienes ${this.app.state.score} créditos. Di "hola" para chatear.`;
+                const welcomeMsg = `¿Cómo estás usuario?. Sumérgete en esta experiencia ${status} y gana créditos respondiendo correctamente a la trivia.
+                                    Clica en el boton "Iniciar Juego" y chatea conmigo si necesitas cualquier empujón.
+                                    Puedes empezar escribiendo "Iniciar Juego" o activando el micrófono. Que disfrutes el juego.`;
                 this.renderMessage('AI', welcomeMsg);
                 this.speak(welcomeMsg);
             }, 1000);
@@ -308,7 +317,7 @@ class ChatbotSystem {
         }
 
         // 2. CONTROL DE JUEGO
-        else if (lower.includes('iniciar') || lower.includes('empezar') || lower.includes('comenzar') || lower.includes('start') || lower.includes('jugar')) {
+        else if (lower.includes('iniciar') || lower.includes('empezar') || lower.includes('comenzar') || lower.includes('start') || lower.includes('jugar') || lower.includes('nueva ola') || lower.includes('nueva oleada') || lower.includes('inciar juego') || lower.includes('empecemos')) {
             if (this.app.ui.hub.style.display !== 'none' || this.app.currentQIndex === 0) {
                 response = "🎮 Iniciando nueva oleada. ¡Buena suerte! {{START_WAVE}}";
                 this.achievementSystem.unlock("iniciador");
@@ -351,7 +360,8 @@ class ChatbotSystem {
 
         // 5. INFORMACIÓN Y ESTADO
         else if (lower.includes('hola') || lower.includes('hi') || lower.includes('hey') || lower.includes('buenas') || lower.includes('saludos') || lower.includes('que tal')) {
-            response = `¡Hola Usuario! Te encuentras en la oleada ${this.app.waveCount} y tienes ${this.app.state.score} créditos. ¿Listo para la trivia?`;
+            response = `¡Hola Usuario! Te encuentras en la oleada ${this.app.waveCount} y tienes ${this.app.state.score} créditos. ¿Listo para la trivia?
+                        Empieza una nueva oleada diciendo "iniciar juego".`;
             this.achievementSystem.unlock("saludador");
         }
         else if (lower.includes('estado') || lower.includes('score') || lower.includes('créditos') || lower.includes('stats') || lower.includes('progreso') || lower.includes('información')) {
@@ -462,32 +472,89 @@ class ChatbotSystem {
     // ==========================================
 
     triggerDanceEffect() {
-        // Avatar Baila
+        // Toggle persistent disco mode: start if inactive, stop if active
+        if (!this.app.scene?.core) {
+            if (this.app.audio) this.app.audio.play('incorrect');
+            return;
+        }
+
+        // Play avatar celebratory state once
         if (this.app.avatarController?.playState) {
             this.app.avatarController.playState('correct').catch(() => { });
         }
 
-        // Efectos visuales en el núcleo
-        if (this.app.scene?.core) {
-            const core = this.app.scene.core;
-            const originalColor = core.material.emissive.getHex();
-
-            let counter = 0;
-            const interval = setInterval(() => {
-                counter++;
-                core.material.emissive.setHex(Math.random() * 0xffffff);
-                core.scale.setScalar(1 + Math.sin(counter * 0.5) * 0.3);
-                core.rotation.y += 0.1;
-
-                if (counter > 30) {
-                    clearInterval(interval);
-                    core.material.emissive.setHex(originalColor);
-                    core.scale.setScalar(1);
-                }
-            }, 100);
+        // If disco already active, stop it
+        if (this.disco.active) {
+            this.stopDiscoEffect();
+            this.renderMessage('AI', '🛑 Fiesta detenida.');
+            if (this.app.audio) this.app.audio.play('cancel');
+            return;
         }
 
+        // Start persistent disco mode
+        this.startDiscoEffect();
+        this.renderMessage('AI', '🎉 ¡Modo fiesta activado! Dilo de nuevo para parar.');
         if (this.app.audio) this.app.audio.play('correct');
+    }
+
+    startDiscoEffect() {
+        if (!this.app.scene?.core) return;
+        const core = this.app.scene.core;
+        if (this.disco.active) return;
+
+        // Save original state
+        try {
+            this.disco.original = {
+                emissive: core.material.emissive.getHex(),
+                emissiveIntensity: core.material.emissiveIntensity || 1,
+                scale: core.scale.x || 1
+            };
+        } catch (e) {
+            this.disco.original = null;
+        }
+
+        this.disco.active = true;
+
+        // Interval: fast flashes, color changes and heavy rotation
+        this.disco.intervalId = setInterval(() => {
+            try {
+                // Random bright color
+                const color = Math.floor(0x202020 + Math.random() * 0xffffff);
+                core.material.emissive.setHex(color);
+
+                // Emissive intensity strobe
+                core.material.emissiveIntensity = 0.8 + Math.random() * 3.0;
+
+                // Frenetic rotation
+                core.rotation.y += 0.6 + Math.random() * 0.8;
+                core.rotation.x += 0.2 + Math.random() * 0.4;
+
+                // Scale pulse
+                const s = 1 + Math.random() * 1.4;
+                core.scale.set(s, s, s);
+            } catch (e) { /* ignore */ }
+        }, 10);
+    }
+
+    stopDiscoEffect() {
+        if (!this.disco.active) return;
+        if (this.disco.intervalId) clearInterval(this.disco.intervalId);
+        this.disco.intervalId = null;
+        this.disco.active = false;
+
+        // Restore original appearance
+        try {
+            const core = this.app.scene.core;
+            if (this.disco.original) {
+                core.material.emissive.setHex(this.disco.original.emissive);
+                core.material.emissiveIntensity = this.disco.original.emissiveIntensity;
+                core.scale.setScalar(this.disco.original.scale);
+            } else {
+                core.material.emissive.setHex(0x001133);
+                core.material.emissiveIntensity = 0.5;
+                core.scale.setScalar(1);
+            }
+        } catch (e) { /* ignore */ }
     }
 
     changeColorScheme() {
