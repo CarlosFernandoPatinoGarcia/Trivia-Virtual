@@ -1,6 +1,7 @@
 export class TriviaFetcher {
     constructor() {
-        this.apiUrl = './cultura2.json';
+        // Resolve JSON relative to this module to work from any entry page
+        this.apiUrl = new URL('./cultura2.json', import.meta.url).toString();
         this.questionsCache = null;
     }
 
