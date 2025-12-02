@@ -1,0 +1,654 @@
+{
+  "questions": [
+    {
+      "question": "¿Cuál es la moneda oficial de Japón?",
+      "options": [
+        "Won",
+        "Yuan",
+        "Yen",
+        "Dong"
+      ],
+      "correct_answer": 2,
+      "explanation": "El yen es la moneda oficial de Japón desde 1871, siendo una de las divisas más importantes del mundo.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se encuentra la torre inclinada de Pisa?",
+      "options": [
+        "Francia",
+        "España",
+        "Italia",
+        "Grecia"
+      ],
+      "correct_answer": 2,
+      "explanation": "La Torre Inclinada de Pisa se encuentra en la ciudad de Pisa, Italia, y es famosa por su inclinación de aproximadamente 4 grados.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es el idioma más hablado en el mundo?",
+      "options": [
+        "Inglés",
+        "Mandarín",
+        "Español",
+        "Hindi"
+      ],
+      "correct_answer": 1,
+      "explanation": "El mandarín (chino) es el idioma más hablado del mundo con más de 900 millones de hablantes nativos.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué continente se encuentra Egipto?",
+      "options": [
+        "Asia",
+        "África",
+        "Europa",
+        "Oceanía"
+      ],
+      "correct_answer": 1,
+      "explanation": "Egipto se encuentra en el noreste de África, aunque una pequeña parte (península del Sinaí) está en Asia.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es la religión más practicada en el mundo?",
+      "options": [
+        "Islam",
+        "Hinduismo",
+        "Cristianismo",
+        "Budismo"
+      ],
+      "correct_answer": 2,
+      "explanation": "El cristianismo es la religión más practicada en el mundo con aproximadamente 2.4 mil millones de seguidores.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué significa 'Namaste' en la cultura india?",
+      "options": [
+        "Adiós",
+        "Hola",
+        "Me inclino ante ti",
+        "Gracias"
+      ],
+      "correct_answer": 2,
+      "explanation": "'Namaste' significa literalmente 'me inclino ante ti' y es un saludo respetuoso en la cultura india que reconoce lo divino en el otro.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿En qué país se originó el tango?",
+      "options": [
+        "Brasil",
+        "Argentina",
+        "Uruguay",
+        "Paraguay"
+      ],
+      "correct_answer": 1,
+      "explanation": "El tango se originó en Argentina, específicamente en Buenos Aires, a finales del siglo XIX como expresión cultural del Río de la Plata.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es el símbolo del yin y yang?",
+      "options": [
+        "Equilibrio",
+        "Dualidad",
+        "Armonía",
+        "Todas las anteriores"
+      ],
+      "correct_answer": 3,
+      "explanation": "El yin y yang representa la dualidad, el equilibrio y la armonía de fuerzas opuestas en la filosofía china.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se celebra el Día de los Muertos?",
+      "options": [
+        "España",
+        "México",
+        "Perú",
+        "Colombia"
+      ],
+      "correct_answer": 1,
+      "explanation": "El Día de los Muertos es una tradición mexicana que celebra y honra a los difuntos los días 1 y 2 de noviembre.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es la capital cultural de Europa según la UNESCO?",
+      "options": [
+        "París",
+        "Roma",
+        "Atenas",
+        "Cambia cada año"
+      ],
+      "correct_answer": 3,
+      "explanation": "La Capital Europea de la Cultura es un título que se otorga anualmente a diferentes ciudades europeas para promover la diversidad cultural.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Qué instrumento es típico de Escocia?",
+      "options": [
+        "Violín",
+        "Gaita",
+        "Arpa",
+        "Flauta"
+      ],
+      "correct_answer": 1,
+      "explanation": "La gaita escocesa (bagpipe) es el instrumento tradicional más característico de Escocia y símbolo de su identidad cultural.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se encuentra Machu Picchu?",
+      "options": [
+        "Chile",
+        "Bolivia",
+        "Perú",
+        "Ecuador"
+      ],
+      "correct_answer": 2,
+      "explanation": "Machu Picchu se encuentra en Perú, siendo una antigua ciudadela inca ubicada en la región de Cusco.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es el saludo tradicional japonés?",
+      "options": [
+        "Arigato",
+        "Konnichiwa",
+        "Sayonara",
+        "Reverencia"
+      ],
+      "correct_answer": 3,
+      "explanation": "La reverencia (ojigi) es el saludo tradicional japonés que muestra respeto, aunque 'konnichiwa' es el saludo verbal común.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿En qué país se originó el flamenco?",
+      "options": [
+        "Portugal",
+        "España",
+        "Italia",
+        "Francia"
+      ],
+      "correct_answer": 1,
+      "explanation": "El flamenco se originó en Andalucía, España, como expresión artística que combina cante, baile y guitarra.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es la bebida nacional de Argentina?",
+      "options": [
+        "Café",
+        "Té",
+        "Mate",
+        "Vino"
+      ],
+      "correct_answer": 2,
+      "explanation": "El mate es la bebida nacional de Argentina, una infusión tradicional que se comparte socialmente en una calabaza con bombilla.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué significan los colores de la bandera de México?",
+      "options": [
+        "Verde: esperanza, Blanco: pureza, Rojo: sangre",
+        "Verde: independencia, Blanco: religión, Rojo: unión",
+        "Verde: naturaleza, Blanco: paz, Rojo: revolución",
+        "Verde: tierra, Blanco: cielo, Rojo: fuego"
+      ],
+      "correct_answer": 1,
+      "explanation": "Originalmente, el verde representaba la independencia, el blanco la religión católica y el rojo la unión entre mexicanos.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿En qué continente se encuentra la cultura aborigen más antigua?",
+      "options": [
+        "África",
+        "Asia",
+        "América",
+        "Oceanía"
+      ],
+      "correct_answer": 3,
+      "explanation": "Los aborígenes australianos tienen la cultura continua más antigua del mundo, con más de 60,000 años de historia.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Cuál es el festival de música más famoso de Brasil?",
+      "options": [
+        "Rock in Rio",
+        "Carnaval",
+        "Festa Junina",
+        "Festival de Inverno"
+      ],
+      "correct_answer": 1,
+      "explanation": "El Carnaval de Brasil, especialmente el de Río de Janeiro, es el festival musical y cultural más famoso del país.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué arte marcial se originó en China?",
+      "options": [
+        "Karate",
+        "Taekwondo",
+        "Kung Fu",
+        "Judo"
+      ],
+      "correct_answer": 2,
+      "explanation": "El Kung Fu se originó en China hace miles de años, siendo un arte marcial que combina técnicas de combate con filosofía.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se encuentra el Taj Mahal?",
+      "options": [
+        "Pakistán",
+        "Bangladesh",
+        "India",
+        "Nepal"
+      ],
+      "correct_answer": 2,
+      "explanation": "El Taj Mahal se encuentra en Agra, India, siendo un mausoleo construido en el siglo XVII como símbolo de amor eterno.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es la ceremonia del té más famosa?",
+      "options": [
+        "China",
+        "India",
+        "Japón",
+        "Inglaterra"
+      ],
+      "correct_answer": 2,
+      "explanation": "La ceremonia del té japonesa (sadō o chadō) es la más elaborada y conocida mundialmente por su protocolo y filosofía zen.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Qué representa el dragón en la cultura china?",
+      "options": [
+        "Maldad",
+        "Poder y buena fortuna",
+        "Guerra",
+        "Muerte"
+      ],
+      "correct_answer": 1,
+      "explanation": "En la cultura china, el dragón simboliza poder, sabiduría, buena fortuna y es considerado un símbolo imperial y benévolo.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se encuentra Petra?",
+      "options": [
+        "Egipto",
+        "Jordania",
+        "Siria",
+        "Líbano"
+      ],
+      "correct_answer": 1,
+      "explanation": "Petra se encuentra en Jordania y es una antigua ciudad nabatea tallada en roca rosada, Patrimonio de la Humanidad.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Cuál es el baile típico de Irlanda?",
+      "options": [
+        "Step dance",
+        "Morris dance",
+        "Clogging",
+        "Irish dance"
+      ],
+      "correct_answer": 3,
+      "explanation": "El Irish dance, especialmente el step dancing, es el baile tradicional irlandés caracterizado por movimientos rápidos de pies.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué significa 'Ubuntu' en la filosofía africana?",
+      "options": [
+        "Soy porque somos",
+        "Fuerza interior",
+        "Sabiduría ancestral",
+        "Unidad familiar"
+      ],
+      "correct_answer": 0,
+      "explanation": "Ubuntu significa 'soy porque somos' y representa la interconexión humana y la humanidad compartida en la filosofía africana.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿En qué país se originó la salsa?",
+      "options": [
+        "Cuba",
+        "Puerto Rico",
+        "Colombia",
+        "Estados Unidos"
+      ],
+      "correct_answer": 3,
+      "explanation": "La salsa moderna se desarrolló en Nueva York en los años 70, aunque tiene raíces cubanas y puertorriqueñas.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Cuál es el símbolo nacional de Canadá?",
+      "options": [
+        "Oso",
+        "Castor",
+        "Hoja de arce",
+        "Águila"
+      ],
+      "correct_answer": 2,
+      "explanation": "La hoja de arce es el símbolo nacional de Canadá, presente en su bandera y representando la identidad canadiense.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué celebra la fiesta del Diwali?",
+      "options": [
+        "Año nuevo",
+        "Triunfo de la luz sobre la oscuridad",
+        "Cosecha",
+        "Monsones"
+      ],
+      "correct_answer": 1,
+      "explanation": "Diwali es el festival de las luces en la cultura hindú que celebra el triunfo del bien sobre el mal y la luz sobre la oscuridad.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿En qué país se encuentra Angkor Wat?",
+      "options": [
+        "Tailandia",
+        "Vietnam",
+        "Camboya",
+        "Laos"
+      ],
+      "correct_answer": 2,
+      "explanation": "Angkor Wat se encuentra en Camboya y es el complejo religioso más grande del mundo, construido en el siglo XII.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Cuál es la vestimenta tradicional de Japón?",
+      "options": [
+        "Hanbok",
+        "Qipao",
+        "Kimono",
+        "Sari"
+      ],
+      "correct_answer": 2,
+      "explanation": "El kimono es la vestimenta tradicional japonesa, una túnica larga con mangas amplias que refleja la elegancia cultural japonesa.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué representa el sombrero en la cultura mexicana?",
+      "options": [
+        "Status social",
+        "Protección solar",
+        "Identidad cultural",
+        "Todas las anteriores"
+      ],
+      "correct_answer": 3,
+      "explanation": "El sombrero mexicano representa protección, status social, identidad cultural y es símbolo de la tradición campesina mexicana.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se celebra el festival Holi?",
+      "options": [
+        "Pakistán",
+        "Bangladesh",
+        "India",
+        "Nepal"
+      ],
+      "correct_answer": 2,
+      "explanation": "Holi es el festival de colores que se celebra principalmente en India y Nepal, marcando la llegada de la primavera.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es el instrumento nacional de Perú?",
+      "options": [
+        "Guitarra",
+        "Charango",
+        "Quena",
+        "Cajón"
+      ],
+      "correct_answer": 1,
+      "explanation": "El charango es considerado el instrumento nacional de Perú, aunque la quena y el cajón también son muy importantes culturalmente.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Qué significa 'Hakuna Matata' en swahili?",
+      "options": [
+        "No hay problema",
+        "Buena suerte",
+        "Hasta la vista",
+        "Vida tranquila"
+      ],
+      "correct_answer": 0,
+      "explanation": "'Hakuna Matata' significa 'no hay problema' en swahili y se popularizó mundialmente por la película 'El Rey León'.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se encuentra la Sagrada Familia?",
+      "options": [
+        "Italia",
+        "Francia",
+        "España",
+        "Portugal"
+      ],
+      "correct_answer": 2,
+      "explanation": "La Sagrada Familia se encuentra en Barcelona, España, siendo la obra maestra del arquitecto Antoni Gaudí.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es la danza tradicional de España?",
+      "options": [
+        "Flamenco",
+        "Jota",
+        "Sardana",
+        "Todas las anteriores"
+      ],
+      "correct_answer": 3,
+      "explanation": "España tiene múltiples danzas tradicionales: flamenco (Andalucía), jota (Aragón), sardana (Cataluña), entre otras.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Qué representa el número 8 en la cultura china?",
+      "options": [
+        "Mala suerte",
+        "Buena suerte",
+        "Neutralidad",
+        "Sabiduría"
+      ],
+      "correct_answer": 1,
+      "explanation": "El número 8 es considerado de muy buena suerte en la cultura china porque su pronunciación suena similar a 'prosperidad'.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿En qué país se originó el reggae?",
+      "options": [
+        "Cuba",
+        "Jamaica",
+        "Puerto Rico",
+        "Barbados"
+      ],
+      "correct_answer": 1,
+      "explanation": "El reggae se originó en Jamaica a finales de los años 60, con Bob Marley como su máximo exponente mundial.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es la bebida nacional de Rusia?",
+      "options": [
+        "Té",
+        "Vodka",
+        "Cerveza",
+        "Kvass"
+      ],
+      "correct_answer": 1,
+      "explanation": "El vodka es tradicionalmente considerado la bebida nacional de Rusia, aunque el té también tiene gran importancia cultural.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué celebra el Año Nuevo Chino?",
+      "options": [
+        "Calendario lunar",
+        "Cosecha de arroz",
+        "Llegada del dragón",
+        "Festival de linternas"
+      ],
+      "correct_answer": 0,
+      "explanation": "El Año Nuevo Chino celebra el inicio del año según el calendario lunar chino y es la festividad más importante de China.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se encuentra Stonehenge?",
+      "options": [
+        "Escocia",
+        "Gales",
+        "Inglaterra",
+        "Irlanda"
+      ],
+      "correct_answer": 2,
+      "explanation": "Stonehenge se encuentra en Inglaterra y es un monumento megalítico prehistórico de gran importancia arqueológica y cultural.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es el saludo tradicional en Tailandia?",
+      "options": [
+        "Reverencia",
+        "Wai",
+        "Apretón de manos",
+        "Abrazo"
+      ],
+      "correct_answer": 1,
+      "explanation": "El 'wai' es el saludo tradicional tailandés que consiste en juntar las palmas de las manos y hacer una leve reverencia.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿Qué representa la flor de loto en la cultura asiática?",
+      "options": [
+        "Pureza y renacimiento",
+        "Riqueza",
+        "Poder",
+        "Sabiduría"
+      ],
+      "correct_answer": 0,
+      "explanation": "La flor de loto simboliza pureza, renacimiento espiritual y iluminación en varias culturas asiáticas, especialmente en el budismo.",
+      "category": "cultura",
+      "difficulty": "medium"
+    },
+    {
+      "question": "¿En qué país se celebra el Oktoberfest?",
+      "options": [
+        "Austria",
+        "Suiza",
+        "Alemania",
+        "Países Bajos"
+      ],
+      "correct_answer": 2,
+      "explanation": "El Oktoberfest se celebra en Múnich, Alemania, siendo el festival de cerveza más grande del mundo.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es la vestimenta tradicional de la India?",
+      "options": [
+        "Kimono",
+        "Sari",
+        "Qipao",
+        "Hanbok"
+      ],
+      "correct_answer": 1,
+      "explanation": "El sari es la vestimenta tradicional femenina de la India, aunque también existen otras como el lehenga y el salwar kameez.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Qué representa el color rojo en la cultura china?",
+      "options": [
+        "Tristeza",
+        "Buena suerte y prosperidad",
+        "Guerra",
+        "Luto"
+      ],
+      "correct_answer": 1,
+      "explanation": "El rojo representa buena suerte, prosperidad, alegría y felicidad en la cultura china, siendo el color más auspicioso.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se encuentra la ciudad perdida de los Incas?",
+      "options": [
+        "Bolivia",
+        "Perú",
+        "Ecuador",
+        "Colombia"
+      ],
+      "correct_answer": 1,
+      "explanation": "Machu Picchu, conocida como la ciudad perdida de los Incas, se encuentra en Perú en la región de Cusco.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es el significado del símbolo del infinito?",
+      "options": [
+        "Tiempo eterno",
+        "Amor sin límites",
+        "Continuidad sin fin",
+        "Todas las anteriores"
+      ],
+      "correct_answer": 3,
+      "explanation": "El símbolo del infinito (∞) representa conceptos de eternidad, continuidad sin fin, amor infinito y tiempo sin límites.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿En qué país se originó el tango?",
+      "options": [
+        "Uruguay",
+        "Argentina",
+        "Brasil",
+        "Chile"
+      ],
+      "correct_answer": 1,
+      "explanation": "El tango se originó en Argentina, específicamente en Buenos Aires, como expresión cultural del Río de la Plata a finales del siglo XIX.",
+      "category": "cultura",
+      "difficulty": "easy"
+    },
+    {
+      "question": "¿Cuál es el festival más importante de la cultura hindú?",
+      "options": [
+        "Holi",
+        "Diwali",
+        "Navratri",
+        "Dussehra"
+      ],
+      "correct_answer": 1,
+      "explanation": "Diwali, el festival de las luces, es considerado el festival más importante del hinduismo, celebrando la victoria del bien sobre el mal.",
+      "category": "cultura",
+      "difficulty": "medium"
+    }
+  ]
+}
