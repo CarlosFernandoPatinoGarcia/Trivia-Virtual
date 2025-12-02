@@ -2,426 +2,89 @@
 <html lang="es">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ecosistema Trivia XR-IA</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'neon-blue': '#00f3ff',
-                        'neon-purple': '#bc13fe',
-                        'hud-black': 'rgba(10, 10, 15, 0.95)'
-                    },
-                    boxShadow: {
-                        'neon': '0 0 15px rgba(0, 243, 255, 0.7), 0 0 30px rgba(0, 243, 255, 0.4)',
-                        'neon-purple': '0 0 15px rgba(188, 19, 254, 0.7), 0 0 30px rgba(188, 19, 254, 0.4)'
-                    }
-                }
-            }
-        }
-    </script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DuoTrivia - Chatbot de Trivia</title>
+    <link rel="stylesheet" href="./css/styles.css" />
 </head>
 
-<body class="bg-black font-sans text-white select-none">
+<body>
+    <div id="app-root" class="layout">
+        <!-- Panel de Datos -->
+        <aside class="sidebar" aria-label="Panel de Datos">
+            <h1 class="brand">DuoTrivia</h1>
+            <div class="stats-block">
+                <div class="stat">Puntaje: <span id="stat-score">0</span></div>
+                <div class="stat">Racha: <span id="stat-streak">0</span></div>
+                <div class="stat">Preguntas: <span id="stat-total">0</span></div>
+                <div class="stat">Acierto: <span id="stat-accuracy">0%</span></div>
+            </div>
+            <div class="kpi-card" aria-label="KPI de acierto">
+                <div class="kpi-label">KPI Acierto</div>
+                <div class="kpi-value" id="kpi-accuracy">0%</div>
+                <div class="kpi-sub" id="kpi-trend">—</div>
+            </div>
+            <button id="btn-open-charts" class="send-btn" type="button" aria-haspopup="dialog"
+                aria-controls="charts-modal">Gráficas</button>
+            <div class="help-box">
+                <p><strong>Comandos:</strong></p>
+                <ul>
+                    <li><code>jugar</code>: nueva pregunta</li>
+                    <li><code>puntaje</code>: ver estadísticas</li>
+                    <li><code>ayuda</code>: ayuda rápida</li>
+                </ul>
+            </div>
+        </aside>
 
-    <!-- Pantalla de Inicio -->
-    <div id="start-screen">
-        <div class="particles" id="particles-container"></div>
+        <!-- Chat Principal -->
+        <section class="chat-section" aria-label="Chat de DuoTrivia">
+            <div id="chat-log" class="chat-log" aria-live="polite"></div>
+            <form id="chat-form" autocomplete="off" class="chat-input-row">
+                <input id="user-input" type="text" placeholder="Escribe aquí..." aria-label="Mensaje del usuario"
+                    required />
+                <button type="submit" class="send-btn">Enviar</button>
+            </form>
+        </section>
+    </div>
 
-        <div class="start-container">
-            <h1 class="start-title">TRIVIA XR-IA</h1>
-            <p class="start-subtitle">SISTEMA DE JUEGO INMERSIVO ACTIVADO</p>
-
-            <button id="start-button" class="start-button">
-                <i class="fas fa-play mr-3"></i>
-                INICIAR EXPERIENCIA
-            </button>
-
-            <div class="start-features">
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <i class="fas fa-robot"></i>
+    <!-- Modal de Gráficas -->
+    <div id="charts-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="charts-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="charts-title">Estadísticas de Preguntas</h2>
+                <button id="btn-close-charts" class="icon-btn" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="menu-tabs" role="tablist">
+                <button class="tab-btn active" data-target="#barChart" role="tab" aria-selected="true">Barras</button>
+                <button class="tab-btn" data-target="#pieChart" role="tab" aria-selected="false">Pastel</button>
+                <button class="tab-btn" data-target="#lineChart" role="tab" aria-selected="false">Líneas</button>
+                <button class="tab-btn" data-target="#datasetPanel" role="tab" aria-selected="false">Dataset</button>
+            </div>
+            <div class="chart-area">
+                <canvas id="barChart" width="640" height="360"></canvas>
+                <canvas id="pieChart" width="360" height="360" class="hidden"></canvas>
+                <canvas id="lineChart" width="640" height="320" class="hidden"></canvas>
+                <div id="datasetPanel" class="hidden">
+                    <div class="dataset-controls">
+                        <label for="difficulty-filter">Dificultad:</label>
+                        <select id="difficulty-filter">
+                            <option value="easy">Fácil</option>
+                            <option value="medium">Media</option>
+                            <option value="hard">Difícil</option>
+                        </select>
                     </div>
-                    <div class="feature-text">
-                        <strong>IA AVANZADA</strong><br>
-                        Chatbot con Gemini AI integrado
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <i class="fas fa-hands"></i>
-                    </div>
-                    <div class="feature-text">
-                        <strong>CONTROL POR GESTOS</strong><br>
-                        Navegación con reconocimiento de manos
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <i class="fas fa-vr-cardboard"></i>
-                    </div>
-                    <div class="feature-text">
-                        <strong>EXPERIENCIA XR</strong><br>
-                        Gráficos 3D y avatares animados
+                    <canvas id="category-chart" width="640" height="320"></canvas>
+                    <div class="questions-wrap">
+                        <h3>Preguntas</h3>
+                        <ul id="questions-list"></ul>
                     </div>
                 </div>
             </div>
+            <div class="system-hint">Basado en respuestas correctas vs. incorrectas.</div>
         </div>
     </div>
 
-    <div id="loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-neon-blue">
-        <div class="relative">
-            <i class="fas fa-circle-notch fa-spin fa-4x mb-4 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]"></i>
-            <div class="absolute inset-0 rounded-full animate-ping border border-neon-blue opacity-20"></div>
-        </div>
-        <h2 class="text-3xl font-bold tracking-[0.2em] mt-4 text-glow">SISTEMA XR-IA</h2>
-        <p class="text-sm text-gray-400 mt-2 font-mono blink">Inicializando sensores...</p>
-    </div>
-
-    <div id="timer-container" class="absolute top-0 left-0 w-full h-3 z-[60] bg-gray-900/80">
-        <div id="timer-bar"
-            class="h-full bg-gradient-to-r from-blue-500 via-neon-blue to-white shadow-neon transition-all duration-1000 ease-linear w-full">
-        </div>
-    </div>
-
-    <div id="canvas-container" class="absolute inset-0 z-0"></div>
-    <video id="input-video" class="hidden opacity-0 pointer-events-none"></video>
-    <div id="hand-cursor"
-        class="fixed w-8 h-8 border-2 border-neon-blue rounded-full bg-neon-blue/30 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[80] shadow-neon hidden">
-    </div>
-
-    <!-- Layout principal mejorado -->
-    <div id="ui-overlay"
-        class="absolute inset-0 pointer-events-none grid grid-rows-[auto_1fr] grid-cols-1 md:grid-cols-[1fr_400px] p-4 gap-4 z-10">
-
-        <!-- Panel superior - Información del juego -->
-        <div class="col-span-2 flex justify-between items-start pointer-events-auto">
-
-            <!-- Panel izquierdo - Stats del jugador -->
-            <div
-                class="hud-panel p-4 rounded-2xl border-l-4 border-l-neon-blue w-full md:w-auto md:min-w-[350px] flex items-center gap-4 shadow-neon transform transition hover:bg-black/90 float-animation">
-                <div class="relative">
-                    <div
-                        class="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center border-2 border-neon-blue/70 shadow-[0_0_15px_inset_rgba(0,243,255,0.3)]">
-                        <i class="fas fa-robot text-neon-blue text-2xl"></i>
-                    </div>
-                    <span
-                        class="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse"></span>
-                </div>
-
-                <div class="flex-1">
-                    <div class="flex justify-between items-baseline mb-2">
-                        <h3 class="font-bold text-neon-blue tracking-wider text-lg text-glow">CORE AI</h3>
-                        <span id="wave-display"
-                            class="text-xs font-bold text-white bg-gradient-to-r from-neon-blue to-neon-purple px-3 py-1 rounded-full">STANDBY</span>
-                    </div>
-
-                    <div class="flex gap-6 text-base font-mono high-contrast">
-                        <div class="flex flex-col items-center">
-                            <span class="text-xs text-gray-400 uppercase tracking-widest mb-1">Créditos</span>
-                            <span id="score-display" class="text-yellow-400 font-bold text-2xl leading-none text-glow">0
-                                CR</span>
-                        </div>
-                        <div class="w-px bg-gray-600 h-10 my-auto"></div>
-                        <div class="flex flex-col items-center">
-                            <span class="text-xs text-gray-400 uppercase tracking-widest mb-1">Pistas</span>
-                            <span id="hints-display" class="text-white font-bold text-2xl leading-none">3</span>
-                        </div>
-                        <div class="w-px bg-gray-600 h-10 my-auto"></div>
-                        <div class="flex flex-col items-center">
-                            <span class="text-xs text-gray-400 uppercase tracking-widest mb-1">Congeladores</span>
-                            <span class="text-cyan-400 font-bold text-2xl leading-none">0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Panel derecho - Controles -->
-            <div
-                class="hud-panel p-3 rounded-2xl border-r-4 border-r-purple-500 flex items-center gap-4 shadow-neon-purple">
-                <button id="btn-camera"
-                    class="bg-gray-800/80 hover:bg-neon-blue hover:text-black text-neon-blue border-2 border-neon-blue/50 px-5 py-3 rounded-xl transition-all duration-300 text-base font-bold flex items-center gap-2 group pulse-glow">
-                    <i class="fas fa-video group-hover:scale-110 transition text-lg"></i>
-                    <span class="hidden md:inline tracking-wider">ACTIVAR TRACKING</span>
-                </button>
-
-                <div class="h-10 w-px bg-gradient-to-b from-transparent via-gray-500 to-transparent"></div>
-
-                <div class="audio-controls flex items-center gap-3">
-                    <button id="btn-audio-toggle"
-                        class="w-12 h-12 rounded-xl bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center transition border-2 border-white/10 pulse-glow">
-                        <i class="fas fa-volume-up text-lg"></i>
-                    </button>
-                    <div class="flex flex-col items-center">
-                        <label class="text-xs text-gray-400 mb-1 uppercase tracking-widest">Volumen</label>
-                        <input id="audio-volume" type="range" min="0" max="100" value="50"
-                            class="w-28 accent-neon-blue h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                            aria-label="Volumen">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Área central - Panel de preguntas -->
-        <div class="row-start-2 flex items-center justify-center relative pointer-events-none">
-
-            <div id="question-panel"
-                class="pointer-events-auto glass-panel p-8 rounded-3xl max-w-3xl w-full text-center transform scale-0 opacity-0 transition-all duration-500 ease-out border-t-2 border-neon-blue shadow-2xl relative bg-black/90 scan-line">
-
-                <div id="hint-overlay"
-                    class="hidden absolute inset-0 bg-black/95 z-30 flex flex-col items-center justify-center rounded-3xl backdrop-blur-xl border-2 border-yellow-500/70">
-                    <div
-                        class="w-24 h-24 rounded-full border-4 border-yellow-400 flex items-center justify-center mb-6 animate-bounce shadow-[0_0_30px_rgba(250,204,21,0.7)]">
-                        <i class="fas fa-smile text-yellow-400 text-5xl"></i>
-                    </div>
-                    <!-- Cámara de vista previa para que el usuario verifique la sonrisa -->
-                    <video id="hint-video" autoplay playsinline muted class="hint-video mb-6 hidden"></video>
-                    <p class="text-white font-bold text-2xl mb-2 uppercase tracking-widest text-glow">Reconocimiento
-                        Facial</p>
-                    <p class="text-lg text-yellow-400 animate-pulse mb-8 font-mono">SONRÍE PARA DESBLOQUEAR LA PISTA</p>
-                    <button id="btn-cancel-hint"
-                        class="border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-8 py-3 rounded-full uppercase text-sm font-bold transition pulse-glow">
-                        Cancelar Escaneo
-                    </button>
-                </div>
-
-                <div
-                    class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-black border-2 border-neon-blue px-6 py-2 rounded-full shadow-neon">
-                    <h2 id="q-category" class="text-sm font-bold text-neon-blue uppercase tracking-[0.3em] text-glow">
-                        Cargando...</h2>
-                </div>
-
-                <h3 id="q-text"
-                    class="text-3xl md:text-4xl font-bold mb-10 mt-6 text-white drop-shadow-md min-h-[100px] flex items-center justify-center high-contrast leading-tight">
-                    Preparando pregunta...
-                </h3>
-
-                <div id="answers-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <!-- Las respuestas se generarán aquí -->
-                </div>
-
-                <div class="flex justify-center gap-6 pt-6 border-t border-white/20">
-                    <button id="btn-use-hint"
-                        class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border-2 border-yellow-500/60 px-6 py-3 rounded-xl text-base font-bold flex items-center gap-3 transition hover:shadow-[0_0_15px_rgba(250,204,21,0.5)] pulse-glow">
-                        <i class="fas fa-lightbulb text-lg"></i>
-                        <span>Usar Pista</span>
-                    </button>
-                    <button id="btn-freeze"
-                        class="hidden bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-2 border-cyan-500/60 px-6 py-3 rounded-xl text-base font-bold items-center gap-3 transition hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] pulse-glow">
-                        <i class="fas fa-snowflake text-lg"></i>
-                        <span>Congelar Tiempo</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Hub entre oleadas -->
-            <div id="hub-overlay"
-                class="absolute inset-0 z-50 pointer-events-auto hidden flex-col items-center justify-center">
-                <div
-                    class="glass-panel p-10 rounded-3xl max-w-4xl w-full border-2 border-neon-purple shadow-[0_0_60px_rgba(188,19,254,0.3)] text-center relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-neon-blue to-neon-purple"></div>
-
-                    <h1 class="hub-title text-glow">OLEADA COMPLETA</h1>
-                    <p class="hub-subtitle text-neon-purple font-mono mb-4 text-glow">GUARDANDO SU PROGRESO...
-                    </p>
-
-                    <!-- Stats compactos -->
-                    <div class="grid grid-cols-3 gap-6 mb-6">
-                        <div
-                            class="p-6 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center group hover:bg-white/10 transition transform hover:scale-105 duration-300">
-                            <i class="fas fa-check-circle text-green-400 text-2xl mb-3"></i>
-                            <div class="hub-stat-value font-bold text-white mb-1 high-contrast" id="hub-score">0</div>
-                            <div class="text-xs text-gray-400 uppercase tracking-widest">Aciertos</div>
-                        </div>
-                        <div
-                            class="p-6 bg-white/10 rounded-2xl border-2 border-neon-blue/50 flex flex-col items-center group hover:bg-white/15 transition transform hover:scale-105 duration-300 shadow-neon bg-gradient-to-b from-white/10 to-transparent">
-                            <i class="fas fa-coins text-yellow-400 text-2xl mb-3"></i>
-                            <div class="hub-stat-value font-bold text-yellow-400 mb-1 text-glow" id="hub-credits">0
-                            </div>
-                            <div class="text-xs text-gray-400 uppercase tracking-widest">Créditos</div>
-                        </div>
-                        <div
-                            class="p-6 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center group hover:bg-white/10 transition transform hover:scale-105 duration-300">
-                            <i class="fas fa-cube text-neon-blue text-2xl mb-3"></i>
-                            <div class="hub-stat-value font-bold text-white mb-1 high-contrast" id="hub-items">0</div>
-                            <div class="text-xs text-gray-400 uppercase tracking-widest">Items</div>
-                        </div>
-                    </div>
-
-                    <!-- QR AR Cofre debajo de los stats -->
-                    <!-- Sección de Recompensa Mejorada -->
-                    <div
-                        class="mb-8 p-6 rounded-2xl bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-neon-purple/50 relative overflow-hidden">
-                        <div
-                            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse">
-                        </div>
-
-                        <div class="relative z-10">
-                            <div class="flex items-center justify-center gap-4 mb-4">
-                                <i class="fas fa-gem text-yellow-400 text-2xl reward-float"></i>
-                                <h3 class="text-xl font-bold text-white uppercase tracking-widest text-glow">RECOMPENSA
-                                    DESBLOQUEADA</h3>
-                                <i class="fas fa-gem text-yellow-400 text-2xl reward-float"
-                                    style="animation-delay: 0.5s;"></i>
-                            </div>
-
-                            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                                <!-- Cofre Animado -->
-                                <div class="flex flex-col items-center">
-                                    <div class="chest-container relative">
-                                        <div
-                                            class="chest-top w-24 h-20 bg-gradient-to-b from-yellow-600 to-yellow-800 rounded-lg chest-glow flex items-center justify-center relative overflow-hidden border-2 border-yellow-400/70">
-                                            <div class="absolute top-0 left-0 w-full h-1 bg-yellow-300/80"></div>
-                                            <i class="fas fa-lock-open text-yellow-300 text-2xl unlock-animation"></i>
-                                            <div
-                                                class="absolute bottom-0 left-0 w-full h-3 bg-gradient-to-t from-yellow-900 to-transparent">
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="chest-base w-28 h-4 bg-gradient-to-b from-yellow-800 to-yellow-900 rounded-b-lg mt-1 mx-auto border border-yellow-700">
-                                        </div>
-                                    </div>
-                                    <p class="text-neon-blue text-sm font-mono mt-3 text-glow">COFRE AR DESBLOQUEADO</p>
-                                </div>
-
-                                <!-- QR Code -->
-                                <div class="flex flex-col items-center">
-                                    <div class="relative">
-                                        <img id="hub-qr"
-                                            class="w-32 h-32 rounded-xl border-2 border-neon-blue/70 bg-white p-2 shadow-[0_0_25px_rgba(56,189,248,0.7)] chest-glow"
-                                            src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://CarlosFernandoPatinoGarcia.github.io/Trivia-Virtual/ar-cofre.html?mode=view&bgcolor=0a0a0f&color=00f3ff"
-                                            alt="Código QR Cofre AR" />
-                                        <div
-                                            class="absolute -inset-2 border border-neon-blue/30 rounded-xl animate-pulse">
-                                        </div>
-                                    </div>
-                                    <p
-                                        class="text-gray-300 text-xs uppercase tracking-[0.2em] mt-3 text-center max-w-[180px]">
-                                        ESCANEA PARA VER EN REALIDAD AUMENTADA
-                                    </p>
-                                </div>
-
-                                <!-- Recompensas -->
-                                <div class="flex flex-col items-center">
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div
-                                            class="flex flex-col items-center p-3 bg-white/5 rounded-lg border border-green-500/30">
-                                            <i class="fas fa-coins text-yellow-400 text-xl mb-1"></i>
-                                            <span class="text-white font-bold text-lg">+50</span>
-                                            <span class="text-gray-400 text-xs">CRÉDITOS</span>
-                                        </div>
-                                        <div
-                                            class="flex flex-col items-center p-3 bg-white/5 rounded-lg border border-blue-500/30">
-                                            <i class="fas fa-lightbulb text-yellow-300 text-xl mb-1"></i>
-                                            <span class="text-white font-bold text-lg">+1</span>
-                                            <span class="text-gray-400 text-xs">PISTA</span>
-                                        </div>
-                                        <div
-                                            class="flex flex-col items-center p-3 bg-white/5 rounded-lg border border-purple-500/30">
-                                            <i class="fas fa-cube text-cyan-400 text-xl mb-1"></i>
-                                            <span class="text-white font-bold text-lg">+1</span>
-                                            <span class="text-gray-400 text-xs">ITEM</span>
-                                        </div>
-                                        <div
-                                            class="flex flex-col items-center p-3 bg-white/5 rounded-lg border border-red-500/30">
-                                            <i class="fas fa-star text-yellow-300 text-xl mb-1"></i>
-                                            <span class="text-white font-bold text-lg">+5</span>
-                                            <span class="text-gray-400 text-xs">XP</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button id="btn-next-wave"
-                        class="w-full py-6 bg-gradient-to-r from-blue-700 to-purple-700 hover:from-blue-600 hover:to-purple-600 rounded-2xl font-bold text-2xl text-white tracking-[0.3em] shadow-lg transform transition active:scale-95 group border-2 border-transparent hover:border-white/30">
-                        INICIAR SIGUIENTE NIVEL
-                        <i class="fas fa-chevron-right ml-3 group-hover:translate-x-2 transition"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chat en el costado derecho -->
-        <div class="row-start-2 flex items-end pointer-events-none">
-
-            <div id="chat-wrapper"
-                class="pointer-events-auto glass-panel rounded-2xl w-full flex flex-col shadow-2xl border-2 border-neon-blue/40 max-h-[70vh] md:h-[500px] transition-all duration-300 transform translate-y-0 backdrop-blur-xl bg-gray-900/95 mr-4">
-
-                <div
-                    class="flex justify-between items-center p-4 border-b border-white/20 bg-black/50 rounded-t-2xl cursor-pointer">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-satellite-dish text-neon-blue text-base animate-pulse"></i>
-                        <span class="text-sm font-bold text-white uppercase tracking-widest text-glow">Comms Link
-                            v.2.0</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <span class="w-3 h-3 bg-gray-600 rounded-full"></span>
-                        <span class="w-3 h-3 bg-gray-600 rounded-full"></span>
-                        <span class="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></span>
-                    </div>
-                </div>
-
-                <div id="chat-messages-area"
-                    class="flex-1 overflow-y-auto p-4 space-y-4 custom-scroll font-mono text-base bg-black/30">
-                    <div
-                        class="chat-bubble-ai text-gray-200 border-l-3 border-neon-blue pl-3 py-2 bg-neon-blue/10 rounded-r high-contrast">
-                        <strong class="block text-xs text-neon-blue mb-1 uppercase tracking-wider">SYSTEM</strong>
-                        Sistema listo. Comandos disponibles: "Iniciar", "Comprar Pista", "Usar Pista".
-                    </div>
-                </div>
-
-                <div class="p-4 bg-black/60 border-t border-white/20 rounded-b-2xl">
-                    <div class="flex gap-3 relative">
-                        <button id="chat-mic-btn"
-                            class="text-gray-400 hover:text-red-500 transition px-3 py-2 rounded-lg hover:bg-red-500/10 text-lg">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-
-                        <input id="chat-input-field" type="text" placeholder="Escribe un comando o usa voz..."
-                            class="w-full bg-transparent border-none text-white text-base focus:ring-0 placeholder-gray-500 font-mono high-contrast px-3 py-2 rounded-lg bg-white/5">
-
-                        <button id="chat-send-btn"
-                            class="text-neon-blue hover:text-white transition px-3 py-2 rounded-lg hover:bg-neon-blue/10 text-lg">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="js/webxr-manager.js"></script>
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-    <script src="js/modelviewer-manager.js"></script>
-    <script src="js/audio-manager.js"></script>
-    <script src="js/chatbot.js"></script>
-    <script src="js/glb-loader.js"></script>
-    <script src="js/avatar-controller.js"></script>
-    <script src="js/botpress_example.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/main-view.js"></script>
-
-    <!-- Script para manejar el QR dinámico -->
-    <script src="js/dinamic-qr.js"></script>
+    <script type="module" src="./js/app.js"></script>
 </body>
 
 </html>
