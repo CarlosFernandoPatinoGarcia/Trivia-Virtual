@@ -196,7 +196,7 @@ class App {
             await this._ensureChartJs();
             // Load dataset once
             if (!this.dataset) {
-                const res = await fetch('duotrivia/cultura2.json');
+                const res = await fetch('./cultura2.json');
                 this.dataset = await res.json();
                 if (!this.dataset || !Array.isArray(this.dataset.questions)) {
                     throw new Error('Estructura JSON inválida: se espera { questions: [...] }');

@@ -1,6 +1,6 @@
 export class TriviaFetcher {
     constructor() {
-        this.apiUrl = 'duotrivia/cultura2.json';
+        this.apiUrl = './cultura2.json';
         this.questionsCache = null;
     }
 
